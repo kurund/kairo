@@ -342,6 +342,34 @@ class Database:
         self.conn.commit()
         return cursor.rowcount
 
+    def rollback_tasks(
+        self, from_year: int, from_week: int, to_year: int, to_week: int
+    ) -> int:
+        """Move incomplete tasks back from next week to previous week.
+
+        Args:
+            from_year: Source year (next week)
+            from_week: Source week (next week)
+            to_year: Target year (previous week)
+            to_week: Target week (previous week)
+
+        Returns:
+            Number of tasks rolled back
+        """
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE tasks
+            SET week = ?, year = ?
+            WHERE week = ? AND year = ? AND status = ?
+        """,
+            (to_week, to_year, from_week, from_year, TaskStatus.OPEN.value),
+        )
+
+        self.conn.commit()
+        return cursor.rowcount
+
     def get_week_stats(self, year: int, week: int) -> dict:
         """Get statistics for a given week.
 

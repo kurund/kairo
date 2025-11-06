@@ -72,9 +72,20 @@ class KairoApp(App):
         align: center middle;
     }
 
-    #nav_container Button {
+    #nav_container .week_nav_btn {
         margin: 0 1;
-        min-width: 10;
+        min-width: 8;
+        height: 3;
+    }
+
+    #nav_container Horizontal.action_row {
+        width: 100%;
+        height: auto;
+    }
+
+    #nav_container .action_btn {
+        width: 1fr;
+        height: 3;
     }
 
     DataTable {
@@ -155,13 +166,41 @@ class KairoApp(App):
                     yield Static("", id="stats_display")
 
                 with Container(id="nav_container"):
-                    yield Static("[bold]Week Navigation[/bold]")
+                    yield Static("[bold]📅 Week Navigation[/bold]")
                     with Horizontal():
-                        yield Button("◄ Prev", id="prev_week_btn", variant="default")
-                        yield Button("This Week", id="this_week_btn", variant="primary")
-                        yield Button("Next ►", id="next_week_btn", variant="default")
-                    with Horizontal():
-                        yield Button("Rollover", id="rollover_btn", variant="warning")
+                        yield Button(
+                            "◄ Prev",
+                            id="prev_week_btn",
+                            variant="default",
+                            classes="week_nav_btn",
+                        )
+                        yield Button(
+                            "📍 This Week",
+                            id="this_week_btn",
+                            variant="primary",
+                            classes="week_nav_btn",
+                        )
+                        yield Button(
+                            "Next ►",
+                            id="next_week_btn",
+                            variant="default",
+                            classes="week_nav_btn",
+                        )
+                    yield Static("")  # Spacer
+                    yield Static("[bold]⚡ Actions[/bold]")
+                    with Horizontal(classes="action_row"):
+                        yield Button(
+                            "Move to Next Week",
+                            id="rollover_btn",
+                            variant="warning",
+                            classes="action_btn",
+                        )
+                        yield Button(
+                            "Move to Prev Week",
+                            id="rollback_btn",
+                            variant="error",
+                            classes="action_btn",
+                        )
 
             # Right panel - task table
             with Vertical(id="right_panel"):
@@ -395,6 +434,8 @@ Completion: {completion_rate:.0f}%"""
             self.current_week = week
         elif event.button.id == "rollover_btn":
             self.rollover_tasks()
+        elif event.button.id == "rollback_btn":
+            self.rollback_tasks()
 
     def rollover_tasks(self) -> None:
         """Rollover incomplete tasks to next week."""
@@ -406,6 +447,20 @@ Completion: {completion_rate:.0f}%"""
         self.notify(
             f"Rolled over {count} task(s) to {format_week(next_year, next_week)}"
         )
+
+    def rollback_tasks(self) -> None:
+        """Rollback incomplete tasks from next week to current week."""
+        next_year, next_week = get_next_week(self.current_year, self.current_week)
+        count = self.db.rollback_tasks(
+            next_year, next_week, self.current_year, self.current_week
+        )
+        self.load_tasks()
+        if count > 0:
+            self.notify(
+                f"Rolled back {count} task(s) from {format_week(next_year, next_week)}"
+            )
+        else:
+            self.notify("No open tasks to rollback from next week")
 
     def on_shutdown(self) -> None:
         """Clean up when app shuts down."""
