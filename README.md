@@ -207,7 +207,7 @@ uv run kairo --help
 
 ## License
 
-MIT License - See LICENSE file for details
+GPL-3.0 license - See LICENSE file for details
 
 ## Contributing
 
