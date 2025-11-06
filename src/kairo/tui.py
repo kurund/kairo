@@ -249,6 +249,7 @@ class KairoApp(App):
     BINDINGS = [
         Binding("a", "add_task", "Add Task", key_display="A"),
         Binding("c", "complete_task", "Complete", key_display="C"),
+        Binding("o", "reopen_task", "Reopen", key_display="O"),
         Binding("d", "show_details", "Details", key_display="D"),
         Binding("r", "refresh", "Refresh", key_display="R"),
         Binding("j", "cursor_down", "Down", show=False),
@@ -382,6 +383,16 @@ Completion: {completion_rate:.0f}%"""
 
         task_id = int(table.get_row_at(table.cursor_row)[0])
         if self.db.complete_task(task_id):
+            self.load_tasks()
+
+    def action_reopen_task(self) -> None:
+        """Mark selected completed task as open again."""
+        table = self.query_one("#task_table", DataTable)
+        if table.cursor_row is None or table.row_count == 0:
+            return
+
+        task_id = int(table.get_row_at(table.cursor_row)[0])
+        if self.db.reopen_task(task_id):
             self.load_tasks()
 
     def action_show_details(self) -> None:

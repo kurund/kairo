@@ -193,6 +193,36 @@ def complete(task_id: int):
 
 
 @cli.command()
+@click.argument("task_id", type=int)
+def reopen(task_id: int):
+    """Mark a completed task as open again."""
+    db = Database()
+
+    try:
+        task = db.get_task(task_id)
+        if not task:
+            console.print(f"[red]Error:[/red] Task {task_id} not found.", err=True)
+            raise click.Abort()
+
+        if task.status == TaskStatus.OPEN:
+            console.print(f"[yellow]Task {task_id} is already open.[/yellow]")
+            return
+
+        if db.reopen_task(task_id):
+            console.print(
+                f"\n[yellow]○[/yellow] Task reopened: [bold]{task.title}[/bold]\n"
+            )
+        else:
+            console.print(
+                f"[red]Error:[/red] Failed to reopen task {task_id}.", err=True
+            )
+            raise click.Abort()
+
+    finally:
+        db.close()
+
+
+@cli.command()
 @click.option(
     "-w", "--week", help="Week number or YYYY-Wnn format (defaults to current week)"
 )

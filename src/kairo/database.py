@@ -222,6 +222,33 @@ class Database:
         self.conn.commit()
         return cursor.rowcount > 0
 
+    def reopen_task(self, task_id: int) -> bool:
+        """Mark a completed task as open again.
+
+        Args:
+            task_id: Task ID
+
+        Returns:
+            True if task was found and updated, False otherwise
+        """
+        cursor = self.conn.cursor()
+
+        cursor.execute(
+            """
+            UPDATE tasks
+            SET status = ?, completed_at = NULL
+            WHERE id = ? AND status = ?
+        """,
+            (
+                TaskStatus.OPEN.value,
+                task_id,
+                TaskStatus.COMPLETED.value,
+            ),
+        )
+
+        self.conn.commit()
+        return cursor.rowcount > 0
+
     def rollover_tasks(
         self, from_year: int, from_week: int, to_year: int, to_week: int
     ) -> int:

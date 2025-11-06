@@ -54,6 +54,7 @@ kairo
 
 - **A** - Add new task
 - **C** - Complete selected task
+- **O** - Reopen completed task (mark as open)
 - **D** - View task details
 - **R** - Refresh task list
 - **←/→** or **H/L** - Navigate between weeks (vim style)
@@ -122,6 +123,13 @@ kairo list --tag urgent --all
 kairo complete 3
 ```
 
+#### Reopen a task
+
+```bash
+# Mark completed task as open again
+kairo reopen 3
+```
+
 #### Weekly planning report
 
 ```bash
@@ -185,6 +193,9 @@ kairo list --tag work
 # Complete tasks as you finish them
 kairo complete 1
 kairo complete 3
+
+# Reopen task if completed by mistake
+kairo reopen 2
 
 # Friday: Review your week
 kairo report
