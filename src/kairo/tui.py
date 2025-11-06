@@ -237,17 +237,6 @@ class KairoApp(App):
         min-width: 12;
     }
 
-    #actions_container {
-        height: auto;
-        border: solid $primary;
-        padding: 1;
-    }
-
-    #actions_container Button {
-        width: 100%;
-        margin-bottom: 1;
-    }
-
     DataTable {
         height: 100%;
     }
@@ -302,12 +291,6 @@ class KairoApp(App):
                             "Current", id="current_week_btn", variant="primary"
                         )
                         yield Button("Rollover", id="rollover_btn", variant="warning")
-
-                with Container(id="actions_container"):
-                    yield Static("[bold]Actions[/bold]", classes="stat_label")
-                    yield Button("➕ Add Task", id="add_task_btn", variant="success")
-                    yield Button("✓ Complete", id="complete_btn", variant="primary")
-                    yield Button("ℹ Details", id="details_btn", variant="default")
 
             # Right panel - task table
             with Vertical(id="right_panel"):
@@ -445,13 +428,7 @@ Completion: {completion_rate:.0f}%"""
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
-        if event.button.id == "add_task_btn":
-            self.action_add_task()
-        elif event.button.id == "complete_btn":
-            self.action_complete_task()
-        elif event.button.id == "details_btn":
-            self.action_show_details()
-        elif event.button.id == "prev_week_btn":
+        if event.button.id == "prev_week_btn":
             self.action_prev_week()
         elif event.button.id == "next_week_btn":
             self.action_next_week()
