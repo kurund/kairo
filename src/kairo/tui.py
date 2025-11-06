@@ -175,7 +175,7 @@ class KairoApp(App):
                             classes="week_nav_btn",
                         )
                         yield Button(
-                            "📍 This Week",
+                            "📍 Current",
                             id="this_week_btn",
                             variant="primary",
                             classes="week_nav_btn",
