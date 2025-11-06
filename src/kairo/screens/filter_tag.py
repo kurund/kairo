@@ -12,6 +12,7 @@ class FilterTagScreen(ModalScreen[str]):
 
     BINDINGS = [
         Binding("escape", "cancel", "Cancel", show=False),
+        Binding("enter", "apply", "Apply", show=False),
     ]
 
     CSS = """
@@ -84,11 +85,15 @@ class FilterTagScreen(ModalScreen[str]):
                 yield Button("Clear", variant="warning", id="clear_btn")
                 yield Button("Cancel", variant="default", id="cancel_btn")
 
+    def _apply_filter(self) -> None:
+        """Apply the current filter."""
+        tag_input = self.query_one("#tag_input", Input)
+        self.dismiss(tag_input.value.strip())
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button press."""
         if event.button.id == "apply_btn":
-            tag_input = self.query_one("#tag_input", Input)
-            self.dismiss(tag_input.value.strip())
+            self._apply_filter()
         elif event.button.id == "clear_btn":
             self.dismiss("")
         else:
@@ -97,3 +102,7 @@ class FilterTagScreen(ModalScreen[str]):
     def action_cancel(self) -> None:
         """Cancel and close the dialog."""
         self.dismiss(None)
+
+    def action_apply(self) -> None:
+        """Apply the filter (Enter shortcut)."""
+        self._apply_filter()

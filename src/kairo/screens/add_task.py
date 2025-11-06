@@ -15,6 +15,7 @@ class AddTaskScreen(ModalScreen[bool]):
 
     BINDINGS = [
         Binding("escape", "cancel", "Cancel", show=False),
+        Binding("ctrl+s", "save", "Save", show=False),
     ]
 
     CSS = """
@@ -75,33 +76,37 @@ class AddTaskScreen(ModalScreen[bool]):
                 yield Button("Add", variant="primary", id="add_btn")
                 yield Button("Cancel", variant="default", id="cancel_btn")
 
+    def _save_task(self) -> None:
+        """Save the task."""
+        title_input = self.query_one("#title_input", Input)
+        desc_input = self.query_one("#desc_input", TextArea)
+        tags_input = self.query_one("#tags_input", Input)
+
+        if title_input.value.strip():
+            # Parse tags from comma-separated input
+            tag_list = [
+                tag.strip() for tag in tags_input.value.split(",") if tag.strip()
+            ]
+
+            db = Database()
+            try:
+                db.add_task(
+                    title=title_input.value.strip(),
+                    description=desc_input.text.strip(),
+                    week=self.week,
+                    year=self.year,
+                    tags=tag_list,
+                )
+                self.dismiss(True)
+            finally:
+                db.close()
+        else:
+            title_input.focus()
+
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
         if event.button.id == "add_btn":
-            title_input = self.query_one("#title_input", Input)
-            desc_input = self.query_one("#desc_input", TextArea)
-            tags_input = self.query_one("#tags_input", Input)
-
-            if title_input.value.strip():
-                # Parse tags from comma-separated input
-                tag_list = [
-                    tag.strip() for tag in tags_input.value.split(",") if tag.strip()
-                ]
-
-                db = Database()
-                try:
-                    db.add_task(
-                        title=title_input.value.strip(),
-                        description=desc_input.text.strip(),
-                        week=self.week,
-                        year=self.year,
-                        tags=tag_list,
-                    )
-                    self.dismiss(True)
-                finally:
-                    db.close()
-            else:
-                title_input.focus()
+            self._save_task()
         else:
             self.dismiss(False)
 
@@ -115,3 +120,7 @@ class AddTaskScreen(ModalScreen[bool]):
     def action_cancel(self) -> None:
         """Cancel and close the dialog."""
         self.dismiss(False)
+
+    def action_save(self) -> None:
+        """Save the task (Ctrl+S shortcut)."""
+        self._save_task()
