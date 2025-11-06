@@ -1,0 +1,21 @@
+[project]
+name = "kairo"
+version = "0.1.0"
+description = "A terminal-based task management tool with weekly planning"
+readme = "README.md"
+authors = [
+    { name = "Kurund Jalmi", email = "kurund.jalmi@gmail.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "click>=8.1.7",
+    "rich>=13.7.0",
+    "textual>=0.47.0",
+]
+
+[project.scripts]
+kairo = "kairo.cli:cli"
+
+[build-system]
+requires = ["uv_build>=0.9.0,<0.10.0"]
+build-backend = "uv_build"
