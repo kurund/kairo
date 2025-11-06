@@ -25,6 +25,12 @@ class Task:
     year: int  # Year for the week
     created_at: datetime
     completed_at: Optional[datetime] = None
+    tags: list[str] = None  # List of tag names
+
+    def __post_init__(self):
+        """Initialize tags to empty list if None."""
+        if self.tags is None:
+            self.tags = []
 
     def to_dict(self) -> dict:
         """Convert task to dictionary."""
@@ -39,6 +45,7 @@ class Task:
             "completed_at": (
                 self.completed_at.isoformat() if self.completed_at else None
             ),
+            "tags": self.tags,
         }
 
     @classmethod
@@ -57,4 +64,5 @@ class Task:
                 if data["completed_at"]
                 else None
             ),
+            tags=data.get("tags", []),
         )

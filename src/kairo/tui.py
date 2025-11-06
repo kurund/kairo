@@ -76,6 +76,8 @@ class AddTaskScreen(ModalScreen[bool]):
             yield Input(placeholder="Enter task title", id="title_input")
             yield Label("Description (optional):")
             yield TextArea(id="desc_input")
+            yield Label("Tags (comma-separated, e.g., work,urgent):")
+            yield Input(placeholder="work, personal", id="tags_input")
             with Horizontal():
                 yield Button("Add", variant="primary", id="add_btn")
                 yield Button("Cancel", variant="default", id="cancel_btn")
@@ -85,8 +87,16 @@ class AddTaskScreen(ModalScreen[bool]):
         if event.button.id == "add_btn":
             title_input = self.query_one("#title_input", Input)
             desc_input = self.query_one("#desc_input", TextArea)
+            tags_input = self.query_one("#tags_input", Input)
 
             if title_input.value.strip():
+                # Parse tags from comma-separated input
+                tag_list = [
+                    tag.strip()
+                    for tag in tags_input.value.split(",")
+                    if tag.strip()
+                ]
+
                 db = Database()
                 try:
                     db.add_task(
@@ -94,6 +104,7 @@ class AddTaskScreen(ModalScreen[bool]):
                         description=desc_input.text.strip(),
                         week=self.week,
                         year=self.year,
+                        tags=tag_list,
                     )
                     self.dismiss(True)
                 finally:
@@ -160,6 +171,8 @@ class TaskDetailScreen(ModalScreen[None]):
                 yield Label(
                     f"Completed: {self._task_data.completed_at.strftime('%Y-%m-%d %H:%M')}"
                 )
+            if self._task_data.tags:
+                yield Label(f"Tags: [cyan]{', '.join(self._task_data.tags)}[/cyan]")
             if self._task_data.description:
                 yield Label(f"\nDescription:\n{self._task_data.description}")
             with Horizontal():
@@ -305,7 +318,7 @@ class KairoApp(App):
     def on_mount(self) -> None:
         """Initialize the app when mounted."""
         table = self.query_one("#task_table", DataTable)
-        table.add_columns("ID", "Status", "Title", "Description")
+        table.add_columns("ID", "Status", "Title", "Tags", "Description")
         table.cursor_type = "row"
         table.zebra_stripes = True
 
@@ -356,11 +369,13 @@ Completion: {completion_rate:.0f}%"""
         for task in tasks:
             status_icon = "✓" if task.status == TaskStatus.COMPLETED else "○"
             status_color = "green" if task.status == TaskStatus.COMPLETED else "yellow"
+            tags_display = ", ".join(task.tags) if task.tags else "-"
 
             table.add_row(
                 str(task.id),
                 f"[{status_color}]{status_icon}[/{status_color}]",
                 task.title,
+                f"[cyan]{tags_display}[/cyan]",
                 task.description or "-",
                 key=str(task.id),
             )

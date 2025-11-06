@@ -35,7 +35,10 @@ def cli(ctx):
 @click.option(
     "-w", "--week", help="Week number or YYYY-Wnn format (defaults to current week)"
 )
-def add(title: str, description: str, week: str):
+@click.option(
+    "-t", "--tags", help="Comma-separated list of tags (e.g., work,urgent)"
+)
+def add(title: str, description: str, week: str, tags: str):
     """Add a new task."""
     db = Database()
 
@@ -45,8 +48,13 @@ def add(title: str, description: str, week: str):
         else:
             year, week_num = get_current_week()
 
+        # Parse tags
+        tag_list = []
+        if tags:
+            tag_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
+
         task = db.add_task(
-            title=title, description=description, week=week_num, year=year
+            title=title, description=description, week=week_num, year=year, tags=tag_list
         )
 
         console.print(f"\n[green]✓[/green] Task created: [bold]{task.title}[/bold]")
@@ -54,6 +62,8 @@ def add(title: str, description: str, week: str):
         console.print(f"  Week: {format_week(task.year, task.week)}")
         if description:
             console.print(f"  Description: {task.description}")
+        if task.tags:
+            console.print(f"  Tags: {', '.join(task.tags)}")
         console.print()
 
     except ValueError as e:
@@ -69,7 +79,10 @@ def add(title: str, description: str, week: str):
 @click.option(
     "-s", "--status", type=click.Choice(["open", "completed"]), help="Filter by status"
 )
-def list(week: str, show_all: bool, status: str):
+@click.option(
+    "-t", "--tag", help="Filter by tag"
+)
+def list(week: str, show_all: bool, status: str, tag: str):
     """List tasks."""
     db = Database()
 
@@ -82,9 +95,16 @@ def list(week: str, show_all: bool, status: str):
             year, week_num = None, None
 
         status_filter = TaskStatus(status) if status else None
-        tasks = db.list_tasks(
-            week=week_num, year=year, status=status_filter, show_all=show_all
-        )
+
+        # Filter by tag if specified
+        if tag:
+            tasks = db.list_tasks_by_tag(
+                tag=tag, week=week_num, year=year, status=status_filter, show_all=show_all
+            )
+        else:
+            tasks = db.list_tasks(
+                week=week_num, year=year, status=status_filter, show_all=show_all
+            )
 
         if not tasks:
             if show_all:
@@ -101,6 +121,9 @@ def list(week: str, show_all: bool, status: str):
         else:
             header = f"[bold]Tasks for Week {format_week(year, week_num)}[/bold]"
 
+        if tag:
+            header += f" [dim](tag: {tag})[/dim]"
+
         console.print(f"\n{header}\n")
 
         # Create table
@@ -109,6 +132,7 @@ def list(week: str, show_all: bool, status: str):
         table.add_column("Status", width=10)
         table.add_column("Title", min_width=30)
         table.add_column("Week", width=10)
+        table.add_column("Tags", width=15, style="cyan")
         table.add_column("Description", style="dim")
 
         for task in tasks:
@@ -117,11 +141,14 @@ def list(week: str, show_all: bool, status: str):
             )
             status_style = "green" if task.status == TaskStatus.COMPLETED else "yellow"
 
+            tags_display = ", ".join(task.tags) if task.tags else "-"
+
             table.add_row(
                 str(task.id),
                 f"[{status_style}]{status_display}[/{status_style}]",
                 task.title,
                 format_week(task.year, task.week),
+                tags_display,
                 task.description or "-",
             )
 

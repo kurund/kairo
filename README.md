@@ -6,6 +6,7 @@
 
 - **Interactive TUI**: Full-featured terminal user interface with keyboard shortcuts
 - **Weekly planning**: Organize tasks by ISO week numbers
+- **Tags system**: Categorize tasks with tags (e.g., work, personal, urgent)
 - **Auto-rollover**: Incomplete tasks automatically move to next week
 - **Beautiful output**: Rich terminal formatting with tables and colors
 - **Weekly statistics**: Real-time stats and completion tracking
@@ -79,9 +80,16 @@ kairo add "Review pull requests"
 # Add with description
 kairo add "Deploy new feature" -d "Deploy to production after QA approval"
 
+# Add with tags
+kairo add "Team meeting" -t "work,urgent"
+kairo add "Buy groceries" -t "personal"
+
 # Add to specific week
 kairo add "Quarterly review" -w 46
 kairo add "Year-end planning" -w 2025-W52
+
+# Combine options
+kairo add "Sprint planning" -d "Q4 planning session" -t "work,planning" -w 46
 ```
 
 #### List tasks
@@ -100,6 +108,11 @@ kairo list --all
 # Filter by status
 kairo list --status open
 kairo list --status completed
+
+# Filter by tag
+kairo list --tag work
+kairo list --tag personal --status open
+kairo list --tag urgent --all
 ```
 
 #### Complete a task
@@ -157,13 +170,17 @@ kairo rollover -f 45 -t 46
 # Monday: Plan your week
 kairo plan
 
-# Add new tasks throughout the week
-kairo add "Fix authentication bug" -d "Users unable to login with SSO"
-kairo add "Update documentation"
-kairo add "Team meeting prep"
+# Add new tasks throughout the week with tags
+kairo add "Fix authentication bug" -d "Users unable to login with SSO" -t "work,urgent"
+kairo add "Update documentation" -t "work"
+kairo add "Team meeting prep" -t "work,meeting"
+kairo add "Dentist appointment" -t "personal"
 
 # Check your tasks
 kairo list
+
+# View work tasks only
+kairo list --tag work
 
 # Complete tasks as you finish them
 kairo complete 1
@@ -175,6 +192,40 @@ kairo report
 # Sunday: Move incomplete tasks to next week
 kairo rollover
 ```
+
+## Tags
+
+Tags help you organize and filter tasks by context. You can assign multiple tags to any task.
+
+### Common Tag Examples
+
+- **Context**: `work`, `personal`, `home`
+- **Priority**: `urgent`, `important`, `low-priority`
+- **Type**: `meeting`, `coding`, `review`, `planning`
+- **Projects**: `project-alpha`, `maintenance`, `documentation`
+
+### Using Tags in TUI
+
+1. Press **A** to add a new task
+2. Fill in the title and description
+3. In the "Tags" field, enter comma-separated tags: `work, urgent`
+4. Tags appear in the task table and details view
+
+### Using Tags in CLI
+
+```bash
+# Add task with tags
+kairo add "Sprint planning" -t "work,meeting,planning"
+
+# Filter by tag
+kairo list --tag work
+kairo list --tag urgent --status open
+
+# View all tasks (tags shown in table)
+kairo list --all
+```
+
+Tags are case-sensitive and stored as lowercase. They're automatically created when first used.
 
 ## Data Storage
 
