@@ -211,7 +211,10 @@ class KairoApp(App):
     def on_mount(self) -> None:
         """Initialize the app when mounted."""
         table = self.query_one("#task_table", DataTable)
-        table.add_columns("ID", "Status", "Title", "Tags", "Description")
+        table.add_column("ID", width=6)
+        table.add_column("Status", width=8)
+        table.add_column("Title", width=None)  # Takes remaining space
+        table.add_column("Tags", width=25)
         table.cursor_type = "row"
         table.zebra_stripes = True
 
@@ -292,7 +295,6 @@ Completion: {completion_rate:.0f}%"""
                 f"[{status_color}]{status_icon}[/{status_color}]",
                 task.title,
                 f"[cyan]{tags_display}[/cyan]",
-                task.description or "-",
                 key=str(task.id),
             )
 
