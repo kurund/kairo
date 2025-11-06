@@ -86,6 +86,7 @@ class KairoApp(App):
     #nav_container .action_btn {
         width: 1fr;
         height: 3;
+        margin: 0 1;
     }
 
     DataTable {
@@ -192,13 +193,13 @@ class KairoApp(App):
                         yield Button(
                             "Move to Next Week",
                             id="rollover_btn",
-                            variant="warning",
+                            variant="default",
                             classes="action_btn",
                         )
                         yield Button(
                             "Move to Prev Week",
                             id="rollback_btn",
-                            variant="error",
+                            variant="default",
                             classes="action_btn",
                         )
 
