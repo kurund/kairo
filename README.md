@@ -58,6 +58,7 @@ kairo
 - **O** - Reopen completed task (mark as open)
 - **X** - Delete selected task (with confirmation)
 - **D** - View task details
+- **F** - Filter tasks by tag (persisted across sessions)
 - **R** - Refresh task list
 - **←/→** or **H/L** - Navigate between weeks (vim style)
 - **↑/↓** or **J/K** - Navigate task list (vim style)
@@ -197,11 +198,14 @@ kairo rollover -f 45 -t 46
 
 1. Launch Kairo: `kairo`
 2. Press **A** to add tasks for the week
-3. Navigate with arrow keys
-4. Press **C** to complete tasks as you finish them
-5. Check weekly statistics in the left panel
-6. Press **Rollover** button or use **←/→** to move between weeks
-7. Press **Q** to quit
+3. Press **F** to filter by tag (e.g., "work", "personal")
+4. Navigate with arrow keys or **J/K** (vim style)
+5. Press **C** to complete tasks as you finish them
+6. Press **E** to edit task details
+7. Check weekly statistics in the left panel
+8. Press **←/→** to move between weeks
+9. Filter persists - reopening Kairo maintains your tag filter
+10. Press **Q** to quit
 
 ### CLI Workflow
 
@@ -252,6 +256,11 @@ Tags help you organize and filter tasks by context. You can assign multiple tags
 2. Fill in the title and description
 3. In the "Tags" field, enter comma-separated tags: `work, urgent`
 4. Tags appear in the task table and details view
+5. Press **F** to filter tasks by tag
+   - Shows list of all available tags
+   - Enter a tag name to filter (e.g., "work")
+   - Press "Clear" to show all tasks
+   - Filter persists when you close and reopen Kairo
 
 ### Using Tags in CLI
 

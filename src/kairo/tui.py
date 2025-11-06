@@ -19,6 +19,8 @@ from textual.reactive import reactive
 from .database import Database
 from .models import Task, TaskStatus
 from .utils import get_current_week, format_week, get_next_week
+import json
+from pathlib import Path
 
 
 class AddTaskScreen(ModalScreen[bool]):
@@ -92,9 +94,7 @@ class AddTaskScreen(ModalScreen[bool]):
             if title_input.value.strip():
                 # Parse tags from comma-separated input
                 tag_list = [
-                    tag.strip()
-                    for tag in tags_input.value.split(",")
-                    if tag.strip()
+                    tag.strip() for tag in tags_input.value.split(",") if tag.strip()
                 ]
 
                 db = Database()
@@ -198,9 +198,7 @@ class EditTaskScreen(ModalScreen[bool]):
             if title_input.value.strip():
                 # Parse tags from comma-separated input
                 tag_list = [
-                    tag.strip()
-                    for tag in tags_input.value.split(",")
-                    if tag.strip()
+                    tag.strip() for tag in tags_input.value.split(",") if tag.strip()
                 ]
 
                 db = Database()
@@ -218,6 +216,90 @@ class EditTaskScreen(ModalScreen[bool]):
                 title_input.focus()
         else:
             self.dismiss(False)
+
+
+class FilterTagScreen(ModalScreen[str]):
+    """Modal screen for filtering tasks by tag."""
+
+    CSS = """
+    FilterTagScreen {
+        align: center middle;
+    }
+
+    #filter_dialog {
+        width: 60;
+        height: auto;
+        border: thick $primary;
+        background: $surface;
+        padding: 1 2;
+    }
+
+    #filter_dialog Label {
+        margin: 1 0;
+    }
+
+    #filter_dialog Input {
+        margin-bottom: 1;
+    }
+
+    #filter_dialog Horizontal {
+        height: auto;
+        align: center middle;
+        margin-top: 1;
+    }
+
+    #filter_dialog Button {
+        margin: 0 1;
+    }
+
+    #tag_list {
+        height: 10;
+        margin: 1 0;
+        border: solid $primary;
+    }
+    """
+
+    def __init__(self, current_filter: str, available_tags: list[str]):
+        self._current_filter = current_filter
+        self._available_tags = available_tags
+        super().__init__()
+
+    def compose(self) -> ComposeResult:
+        """Compose the filter dialog."""
+        with Vertical(id="filter_dialog"):
+            yield Label("[bold]Filter Tasks by Tag[/bold]")
+
+            if self._current_filter:
+                yield Label(f"Current filter: [cyan]{self._current_filter}[/cyan]")
+            else:
+                yield Label("Current filter: [dim]None (showing all)[/dim]")
+
+            yield Label("\nEnter tag name (or leave empty for all tasks):")
+            yield Input(
+                value=self._current_filter or "",
+                placeholder="Enter tag name",
+                id="tag_input",
+            )
+
+            if self._available_tags:
+                yield Label(
+                    f"\nAvailable tags: [cyan]{', '.join(sorted(self._available_tags))}[/cyan]"
+                )
+
+            with Horizontal():
+                yield Button("Apply", variant="primary", id="apply_btn")
+                yield Button("Clear", variant="warning", id="clear_btn")
+                yield Button("Cancel", variant="default", id="cancel_btn")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button press."""
+        if event.button.id == "apply_btn":
+            tag_input = self.query_one("#tag_input", Input)
+            self.dismiss(tag_input.value.strip())
+        elif event.button.id == "clear_btn":
+            self.dismiss("")
+        else:
+            self.dismiss(None)
 
 
 class ConfirmDeleteScreen(ModalScreen[bool]):
@@ -316,8 +398,12 @@ class TaskDetailScreen(ModalScreen[None]):
             yield Label(
                 f"Status: {'✓ Completed' if self._task_data.status == TaskStatus.COMPLETED else '○ Open'}"
             )
-            yield Label(f"Week: {format_week(self._task_data.year, self._task_data.week)}")
-            yield Label(f"Created: {self._task_data.created_at.strftime('%Y-%m-%d %H:%M')}")
+            yield Label(
+                f"Week: {format_week(self._task_data.year, self._task_data.week)}"
+            )
+            yield Label(
+                f"Created: {self._task_data.created_at.strftime('%Y-%m-%d %H:%M')}"
+            )
             if self._task_data.completed_at:
                 yield Label(
                     f"Completed: {self._task_data.completed_at.strftime('%Y-%m-%d %H:%M')}"
@@ -329,13 +415,15 @@ class TaskDetailScreen(ModalScreen[None]):
             with Horizontal():
                 yield Button("Close", variant="primary", id="close_btn")
 
-    def on_button_pressed(self, event: Button.Pressed) -> None:
+    def on_button_pressed(self, _event: Button.Pressed) -> None:
         """Handle button press."""
         self.dismiss()
 
 
 class KairoApp(App):
     """Main Kairo TUI application."""
+
+    STATE_FILE = Path.home() / ".kairo" / "tui_state.json"
 
     CSS = """
     Screen {
@@ -404,6 +492,7 @@ class KairoApp(App):
         Binding("o", "reopen_task", "Reopen", key_display="O"),
         Binding("x", "delete_task", "Delete", key_display="X"),
         Binding("d", "show_details", "Details", key_display="D"),
+        Binding("f", "filter_by_tag", "Filter", key_display="F"),
         Binding("r", "refresh", "Refresh", key_display="R"),
         Binding("j", "cursor_down", "Down", show=False),
         Binding("k", "cursor_up", "Up", show=False),
@@ -416,10 +505,39 @@ class KairoApp(App):
 
     current_year = reactive(0)
     current_week = reactive(0)
+    current_tag_filter = reactive("")
 
     def __init__(self):
         super().__init__()
         self.db = Database()
+        self._loaded_tag_filter = None
+        self._load_state()
+
+    def _load_state(self):
+        """Load persisted state from file."""
+        try:
+            if self.STATE_FILE.exists():
+                with open(self.STATE_FILE, "r") as f:
+                    state = json.load(f)
+                    self._loaded_tag_filter = state.get("tag_filter", "")
+        except Exception:
+            # Ignore errors loading state
+            pass
+
+    def _save_state(self):
+        """Save current state to file."""
+        try:
+            self.STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
+            with open(self.STATE_FILE, "w") as f:
+                json.dump(
+                    {
+                        "tag_filter": self.current_tag_filter,
+                    },
+                    f,
+                )
+        except Exception:
+            # Ignore errors saving state
+            pass
 
     def compose(self) -> ComposeResult:
         """Compose the main app UI."""
@@ -464,26 +582,49 @@ class KairoApp(App):
         self.current_year = year
         self.current_week = week
 
+        # Apply loaded tag filter if any
+        if self._loaded_tag_filter:
+            self.current_tag_filter = self._loaded_tag_filter
+
         # Set focus to task table
         table.focus()
 
-    def watch_current_year(self, year: int) -> None:
+    def watch_current_year(self, _year: int) -> None:
         """Watch for changes to current year."""
         self.load_tasks()
 
-    def watch_current_week(self, week: int) -> None:
+    def watch_current_week(self, _week: int) -> None:
         """Watch for changes to current week."""
         self.load_tasks()
 
+    def watch_current_tag_filter(self, _tag_filter: str) -> None:
+        """Watch for changes to tag filter."""
+        self.load_tasks()
+        self._save_state()
+
     def load_tasks(self) -> None:
         """Load and display tasks for current week."""
-        tasks = self.db.list_tasks(week=self.current_week, year=self.current_year)
+        # Load tasks with optional tag filter
+        if self.current_tag_filter:
+            tasks = self.db.list_tasks_by_tag(
+                tag=self.current_tag_filter,
+                week=self.current_week,
+                year=self.current_year,
+            )
+        else:
+            tasks = self.db.list_tasks(week=self.current_week, year=self.current_year)
+
         stats = self.db.get_week_stats(self.current_year, self.current_week)
 
         # Update status bar
         week_str = format_week(self.current_year, self.current_week)
         status_bar = self.query_one("#status_bar", Static)
-        status_bar.update(f"[bold]Kairo - Week {week_str}[/bold]")
+        filter_text = (
+            f" [cyan]| Filter: {self.current_tag_filter}[/cyan]"
+            if self.current_tag_filter
+            else ""
+        )
+        status_bar.update(f"[bold]Kairo - Week {week_str}{filter_text}[/bold]")
 
         # Update stats
         stats_display = self.query_one("#stats_display", Static)
@@ -520,7 +661,7 @@ Completion: {completion_rate:.0f}%"""
     def action_add_task(self) -> None:
         """Show add task dialog."""
 
-        def handle_result(result: bool) -> None:
+        def handle_result(result: bool | None) -> None:
             if result:
                 self.load_tasks()
 
@@ -539,7 +680,7 @@ Completion: {completion_rate:.0f}%"""
         if not task:
             return
 
-        def handle_result(result: bool) -> None:
+        def handle_result(result: bool | None) -> None:
             if result:
                 self.load_tasks()
                 self.notify(f"Task updated: {task.title}")
@@ -577,7 +718,7 @@ Completion: {completion_rate:.0f}%"""
         if not task:
             return
 
-        def handle_result(confirmed: bool) -> None:
+        def handle_result(confirmed: bool | None) -> None:
             if confirmed:
                 if self.db.delete_task(task_id):
                     self.load_tasks()
@@ -595,6 +736,22 @@ Completion: {completion_rate:.0f}%"""
         task = self.db.get_task(task_id)
         if task:
             self.push_screen(TaskDetailScreen(task))
+
+    def action_filter_by_tag(self) -> None:
+        """Show filter by tag dialog."""
+        available_tags = self.db.get_all_tags()
+
+        def handle_result(tag_filter: str | None) -> None:
+            if tag_filter is not None:  # None means cancelled
+                self.current_tag_filter = tag_filter
+                if tag_filter:
+                    self.notify(f"Filtered by tag: {tag_filter}")
+                else:
+                    self.notify("Filter cleared - showing all tasks")
+
+        self.push_screen(
+            FilterTagScreen(self.current_tag_filter, available_tags), handle_result
+        )
 
     def action_prev_week(self) -> None:
         """Go to previous week."""
