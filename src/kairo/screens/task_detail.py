@@ -60,6 +60,8 @@ class TaskDetailScreen(ModalScreen[None]):
             yield Label(
                 f"Week: {format_week(self._task_data.year, self._task_data.week)}"
             )
+            if self._task_data.estimate:
+                yield Label(f"Estimate: {self._task_data.estimate} hours")
             yield Label(
                 f"Created: {self._task_data.created_at.strftime('%Y-%m-%d %H:%M')}"
             )

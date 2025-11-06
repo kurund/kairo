@@ -26,6 +26,7 @@ class Task:
     created_at: datetime
     completed_at: Optional[datetime] = None
     tags: list[str] = None  # List of tag names
+    estimate: Optional[int] = None  # Estimated time in hours
 
     def __post_init__(self):
         """Initialize tags to empty list if None."""
@@ -46,6 +47,7 @@ class Task:
                 self.completed_at.isoformat() if self.completed_at else None
             ),
             "tags": self.tags,
+            "estimate": self.estimate,
         }
 
     @classmethod
@@ -65,4 +67,5 @@ class Task:
                 else None
             ),
             tags=data.get("tags", []),
+            estimate=data.get("estimate"),
         )

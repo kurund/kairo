@@ -72,6 +72,8 @@ class AddTaskScreen(ModalScreen[bool]):
             yield TextArea(id="desc_input")
             yield Label("Tags (comma-separated, e.g., work,urgent):")
             yield Input(placeholder="work, personal", id="tags_input")
+            yield Label("Estimate (hours, optional):")
+            yield Input(placeholder="e.g., 2", id="estimate_input", type="integer")
             with Horizontal():
                 yield Button("Add", variant="primary", id="add_btn")
                 yield Button("Cancel", variant="default", id="cancel_btn")
@@ -81,12 +83,21 @@ class AddTaskScreen(ModalScreen[bool]):
         title_input = self.query_one("#title_input", Input)
         desc_input = self.query_one("#desc_input", TextArea)
         tags_input = self.query_one("#tags_input", Input)
+        estimate_input = self.query_one("#estimate_input", Input)
 
         if title_input.value.strip():
             # Parse tags from comma-separated input
             tag_list = [
                 tag.strip() for tag in tags_input.value.split(",") if tag.strip()
             ]
+
+            # Parse estimate (convert to int if provided)
+            estimate = None
+            if estimate_input.value.strip():
+                try:
+                    estimate = int(estimate_input.value.strip())
+                except ValueError:
+                    pass  # Ignore invalid input
 
             db = Database()
             try:
@@ -96,6 +107,7 @@ class AddTaskScreen(ModalScreen[bool]):
                     week=self.week,
                     year=self.year,
                     tags=tag_list,
+                    estimate=estimate,
                 )
                 self.dismiss(True)
             finally:

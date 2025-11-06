@@ -215,7 +215,8 @@ class KairoApp(App):
         table.add_column("ID", width=6)
         table.add_column("Status", width=8)
         table.add_column("Title", width=None)  # Takes remaining space
-        table.add_column("Tags", width=25)
+        table.add_column("Tags", width=20)
+        table.add_column("Est", width=6)  # Estimate in hours
         table.cursor_type = "row"
         table.zebra_stripes = True
 
@@ -274,12 +275,23 @@ class KairoApp(App):
         if stats["total"] > 0:
             completion_rate = (stats["completed"] / stats["total"]) * 100
 
+        # Build stats text with estimates if any exist
         stats_text = f"""[bold]Week Statistics[/bold]
 
 Total: {stats['total']}
 [green]Completed: {stats['completed']}[/green]
 [yellow]Open: {stats['open']}[/yellow]
 Completion: {completion_rate:.0f}%"""
+
+        # Add estimate totals if any tasks have estimates
+        if stats["total_estimate"] > 0:
+            stats_text += f"""
+
+[bold]Estimates[/bold]
+Total: {stats['total_estimate']}h
+[green]Completed: {stats['completed_estimate']}h[/green]
+[yellow]Remaining: {stats['open_estimate']}h[/yellow]"""
+
         stats_display.update(stats_text)
 
         # Update table
@@ -290,12 +302,14 @@ Completion: {completion_rate:.0f}%"""
             status_icon = "✓" if task.status == TaskStatus.COMPLETED else "○"
             status_color = "green" if task.status == TaskStatus.COMPLETED else "yellow"
             tags_display = ", ".join(task.tags) if task.tags else "-"
+            estimate_display = f"{task.estimate}h" if task.estimate else "-"
 
             table.add_row(
                 str(task.id),
                 f"[{status_color}]{status_icon}[/{status_color}]",
                 task.title,
                 f"[cyan]{tags_display}[/cyan]",
+                f"[dim]{estimate_display}[/dim]",
                 key=str(task.id),
             )
 

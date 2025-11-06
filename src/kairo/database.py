@@ -42,7 +42,8 @@ class Database:
                 week INTEGER NOT NULL,
                 year INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
-                completed_at TEXT
+                completed_at TEXT,
+                estimate INTEGER
             )
         """
         )
@@ -70,6 +71,12 @@ class Database:
         """
         )
 
+        # Migration: Add estimate column if it doesn't exist
+        try:
+            cursor.execute("SELECT estimate FROM tasks LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE tasks ADD COLUMN estimate INTEGER")
+
         self.conn.commit()
 
     def add_task(
@@ -79,6 +86,7 @@ class Database:
         week: Optional[int] = None,
         year: Optional[int] = None,
         tags: list[str] = None,
+        estimate: Optional[int] = None,
     ) -> Task:
         """Add a new task.
 
@@ -88,6 +96,7 @@ class Database:
             week: ISO week number (defaults to current week)
             year: Year (defaults to current year)
             tags: List of tag names
+            estimate: Estimated time in hours
 
         Returns:
             Created task
@@ -103,8 +112,8 @@ class Database:
 
         cursor.execute(
             """
-            INSERT INTO tasks (title, description, status, week, year, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO tasks (title, description, status, week, year, created_at, estimate)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 title,
@@ -113,6 +122,7 @@ class Database:
                 week,
                 year,
                 created_at.isoformat(),
+                estimate,
             ),
         )
 
@@ -134,6 +144,7 @@ class Database:
             created_at=created_at,
             completed_at=None,
             tags=tags,
+            estimate=estimate,
         )
 
     def get_task(self, task_id: int) -> Optional[Task]:
@@ -271,6 +282,7 @@ class Database:
         title: Optional[str] = None,
         description: Optional[str] = None,
         tags: Optional[list[str]] = None,
+        estimate: Optional[int] = None,
     ) -> bool:
         """Update task fields.
 
@@ -279,13 +291,14 @@ class Database:
             title: New title (optional)
             description: New description (optional)
             tags: New list of tags (optional, replaces existing tags)
+            estimate: Estimated time in hours (optional)
 
         Returns:
             True if task was found and updated, False otherwise
         """
         cursor = self.conn.cursor()
 
-        # Update title and/or description
+        # Update title and/or description and/or estimate
         updates = []
         params = []
 
@@ -296,6 +309,10 @@ class Database:
         if description is not None:
             updates.append("description = ?")
             params.append(description)
+
+        if estimate is not None:
+            updates.append("estimate = ?")
+            params.append(estimate)
 
         if updates:
             params.append(task_id)
@@ -378,7 +395,7 @@ class Database:
             week: Week number
 
         Returns:
-            Dictionary with task counts
+            Dictionary with task counts and estimate totals
         """
         cursor = self.conn.cursor()
 
@@ -387,11 +404,14 @@ class Database:
             SELECT
                 COUNT(*) as total,
                 SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as completed,
-                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as open
+                SUM(CASE WHEN status = ? THEN 1 ELSE 0 END) as open,
+                SUM(CASE WHEN estimate IS NOT NULL THEN estimate ELSE 0 END) as total_estimate,
+                SUM(CASE WHEN status = ? AND estimate IS NOT NULL THEN estimate ELSE 0 END) as completed_estimate,
+                SUM(CASE WHEN status = ? AND estimate IS NOT NULL THEN estimate ELSE 0 END) as open_estimate
             FROM tasks
             WHERE year = ? AND week = ?
         """,
-            (TaskStatus.COMPLETED.value, TaskStatus.OPEN.value, year, week),
+            (TaskStatus.COMPLETED.value, TaskStatus.OPEN.value, TaskStatus.COMPLETED.value, TaskStatus.OPEN.value, year, week),
         )
 
         row = cursor.fetchone()
@@ -399,6 +419,9 @@ class Database:
             "total": row["total"],
             "completed": row["completed"],
             "open": row["open"],
+            "total_estimate": row["total_estimate"] or 0,
+            "completed_estimate": row["completed_estimate"] or 0,
+            "open_estimate": row["open_estimate"] or 0,
         }
 
     def _row_to_task(self, row: sqlite3.Row) -> Task:
@@ -427,6 +450,7 @@ class Database:
                 else None
             ),
             tags=tags,
+            estimate=row["estimate"] if row["estimate"] else None,
         )
 
     def _get_or_create_tag(self, tag_name: str) -> int:
