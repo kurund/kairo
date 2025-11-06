@@ -1,6 +1,7 @@
 """Edit task screen for Kairo TUI."""
 
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Input, Label, TextArea
 from textual.screen import ModalScreen
@@ -11,6 +12,10 @@ from ..models import Task
 
 class EditTaskScreen(ModalScreen[bool]):
     """Modal screen for editing a task."""
+
+    BINDINGS = [
+        Binding("escape", "cancel", "Cancel", show=False),
+    ]
 
     CSS = """
     EditTaskScreen {
@@ -103,3 +108,7 @@ class EditTaskScreen(ModalScreen[bool]):
                 title_input.focus()
         else:
             self.dismiss(False)
+
+    def action_cancel(self) -> None:
+        """Cancel and close the dialog."""
+        self.dismiss(False)

@@ -1,6 +1,7 @@
 """Task detail screen for Kairo TUI."""
 
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Label
 from textual.screen import ModalScreen
@@ -11,6 +12,10 @@ from ..utils import format_week
 
 class TaskDetailScreen(ModalScreen[None]):
     """Modal screen for viewing task details."""
+
+    BINDINGS = [
+        Binding("escape", "close", "Close", show=False),
+    ]
 
     CSS = """
     TaskDetailScreen {
@@ -71,4 +76,8 @@ class TaskDetailScreen(ModalScreen[None]):
 
     def on_button_pressed(self, _event: Button.Pressed) -> None:
         """Handle button press."""
+        self.dismiss()
+
+    def action_close(self) -> None:
+        """Close the dialog."""
         self.dismiss()

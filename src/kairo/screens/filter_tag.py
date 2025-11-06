@@ -1,6 +1,7 @@
 """Filter by tag screen for Kairo TUI."""
 
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Input, Label
 from textual.screen import ModalScreen
@@ -8,6 +9,10 @@ from textual.screen import ModalScreen
 
 class FilterTagScreen(ModalScreen[str]):
     """Modal screen for filtering tasks by tag."""
+
+    BINDINGS = [
+        Binding("escape", "cancel", "Cancel", show=False),
+    ]
 
     CSS = """
     FilterTagScreen {
@@ -88,3 +93,7 @@ class FilterTagScreen(ModalScreen[str]):
             self.dismiss("")
         else:
             self.dismiss(None)
+
+    def action_cancel(self) -> None:
+        """Cancel and close the dialog."""
+        self.dismiss(None)

@@ -1,6 +1,7 @@
 """Add task screen for Kairo TUI."""
 
 from textual.app import ComposeResult
+from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Input, Label, TextArea
 from textual.screen import ModalScreen
@@ -11,6 +12,10 @@ from ..utils import format_week
 
 class AddTaskScreen(ModalScreen[bool]):
     """Modal screen for adding a new task."""
+
+    BINDINGS = [
+        Binding("escape", "cancel", "Cancel", show=False),
+    ]
 
     CSS = """
     AddTaskScreen {
@@ -106,3 +111,7 @@ class AddTaskScreen(ModalScreen[bool]):
             # Move focus to description
             desc_input = self.query_one("#desc_input", TextArea)
             desc_input.focus()
+
+    def action_cancel(self) -> None:
+        """Cancel and close the dialog."""
+        self.dismiss(False)
