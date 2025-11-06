@@ -122,6 +122,59 @@ class AddTaskScreen(ModalScreen[bool]):
             desc_input.focus()
 
 
+class ConfirmDeleteScreen(ModalScreen[bool]):
+    """Modal screen for confirming task deletion."""
+
+    CSS = """
+    ConfirmDeleteScreen {
+        align: center middle;
+    }
+
+    #confirm_dialog {
+        width: 60;
+        height: auto;
+        border: thick $error;
+        background: $surface;
+        padding: 1 2;
+    }
+
+    #confirm_dialog Label {
+        margin: 1 0;
+    }
+
+    #confirm_dialog Horizontal {
+        height: auto;
+        align: center middle;
+        margin-top: 1;
+    }
+
+    #confirm_dialog Button {
+        margin: 0 1;
+    }
+    """
+
+    def __init__(self, task: Task):
+        self._task_data = task
+        super().__init__()
+
+    def compose(self) -> ComposeResult:
+        """Compose the confirmation dialog."""
+        with Vertical(id="confirm_dialog"):
+            yield Label("[bold red]Delete Task?[/bold red]")
+            yield Label(f"\n[bold]{self._task_data.title}[/bold]")
+            yield Label("\nThis action cannot be undone.")
+            with Horizontal():
+                yield Button("Delete", variant="error", id="delete_btn")
+                yield Button("Cancel", variant="default", id="cancel_btn")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button press."""
+        if event.button.id == "delete_btn":
+            self.dismiss(True)
+        else:
+            self.dismiss(False)
+
+
 class TaskDetailScreen(ModalScreen[None]):
     """Modal screen for viewing task details."""
 
@@ -250,6 +303,7 @@ class KairoApp(App):
         Binding("a", "add_task", "Add Task", key_display="A"),
         Binding("c", "complete_task", "Complete", key_display="C"),
         Binding("o", "reopen_task", "Reopen", key_display="O"),
+        Binding("x", "delete_task", "Delete", key_display="X"),
         Binding("d", "show_details", "Details", key_display="D"),
         Binding("r", "refresh", "Refresh", key_display="R"),
         Binding("j", "cursor_down", "Down", show=False),
@@ -394,6 +448,25 @@ Completion: {completion_rate:.0f}%"""
         task_id = int(table.get_row_at(table.cursor_row)[0])
         if self.db.reopen_task(task_id):
             self.load_tasks()
+
+    def action_delete_task(self) -> None:
+        """Delete selected task with confirmation."""
+        table = self.query_one("#task_table", DataTable)
+        if table.cursor_row is None or table.row_count == 0:
+            return
+
+        task_id = int(table.get_row_at(table.cursor_row)[0])
+        task = self.db.get_task(task_id)
+        if not task:
+            return
+
+        def handle_result(confirmed: bool) -> None:
+            if confirmed:
+                if self.db.delete_task(task_id):
+                    self.load_tasks()
+                    self.notify(f"Task deleted: {task.title}")
+
+        self.push_screen(ConfirmDeleteScreen(task), handle_result)
 
     def action_show_details(self) -> None:
         """Show task details."""

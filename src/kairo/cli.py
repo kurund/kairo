@@ -223,6 +223,35 @@ def reopen(task_id: int):
 
 
 @cli.command()
+@click.argument("task_id", type=int)
+@click.confirmation_option(prompt="Are you sure you want to delete this task?")
+def delete(task_id: int):
+    """Delete a task permanently."""
+    db = Database()
+
+    try:
+        task = db.get_task(task_id)
+        if not task:
+            console.print(f"[red]Error:[/red] Task {task_id} not found.", err=True)
+            raise click.Abort()
+
+        task_title = task.title
+
+        if db.delete_task(task_id):
+            console.print(
+                f"\n[red]✗[/red] Task deleted: [bold]{task_title}[/bold]\n"
+            )
+        else:
+            console.print(
+                f"[red]Error:[/red] Failed to delete task {task_id}.", err=True
+            )
+            raise click.Abort()
+
+    finally:
+        db.close()
+
+
+@cli.command()
 @click.option(
     "-w", "--week", help="Week number or YYYY-Wnn format (defaults to current week)"
 )

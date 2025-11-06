@@ -249,6 +249,22 @@ class Database:
         self.conn.commit()
         return cursor.rowcount > 0
 
+    def delete_task(self, task_id: int) -> bool:
+        """Delete a task.
+
+        Args:
+            task_id: Task ID
+
+        Returns:
+            True if task was found and deleted, False otherwise
+        """
+        cursor = self.conn.cursor()
+
+        cursor.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+
+        self.conn.commit()
+        return cursor.rowcount > 0
+
     def rollover_tasks(
         self, from_year: int, from_week: int, to_year: int, to_week: int
     ) -> int:

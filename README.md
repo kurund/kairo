@@ -55,6 +55,7 @@ kairo
 - **A** - Add new task
 - **C** - Complete selected task
 - **O** - Reopen completed task (mark as open)
+- **X** - Delete selected task (with confirmation)
 - **D** - View task details
 - **R** - Refresh task list
 - **←/→** or **H/L** - Navigate between weeks (vim style)
@@ -128,6 +129,16 @@ kairo complete 3
 ```bash
 # Mark completed task as open again
 kairo reopen 3
+```
+
+#### Delete a task
+
+```bash
+# Delete a task permanently (requires confirmation)
+kairo delete 3
+
+# Skip confirmation prompt
+kairo delete 3 --yes
 ```
 
 #### Weekly planning report
