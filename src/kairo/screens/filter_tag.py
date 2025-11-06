@@ -13,6 +13,7 @@ class FilterTagScreen(ModalScreen[str]):
     BINDINGS = [
         Binding("escape", "cancel", "Cancel", show=False),
         Binding("enter", "apply", "Apply", show=False),
+        Binding("ctrl+d", "clear", "Clear", show=False),
     ]
 
     CSS = """
@@ -99,6 +100,11 @@ class FilterTagScreen(ModalScreen[str]):
         else:
             self.dismiss(None)
 
+    def on_input_submitted(self, event: Input.Submitted) -> None:
+        """Handle Enter key in tag input."""
+        if event.input.id == "tag_input":
+            self._apply_filter()
+
     def action_cancel(self) -> None:
         """Cancel and close the dialog."""
         self.dismiss(None)
@@ -106,3 +112,7 @@ class FilterTagScreen(ModalScreen[str]):
     def action_apply(self) -> None:
         """Apply the filter (Enter shortcut)."""
         self._apply_filter()
+
+    def action_clear(self) -> None:
+        """Clear the filter (Ctrl+D shortcut)."""
+        self.dismiss("")
