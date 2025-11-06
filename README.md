@@ -66,12 +66,10 @@ kairo
 
 #### TUI Buttons
 
-- **◄ Prev / Next ►** - Navigate weeks
-- **Current** - Jump to current week
+- **◄ Prev** - Go to previous week
+- **This Week** - Jump to current week
+- **Next ►** - Go to next week
 - **Rollover** - Move incomplete tasks to next week
-- **➕ Add Task** - Create new task
-- **✓ Complete** - Mark selected task complete
-- **ℹ Details** - View task details
 
 ### CLI Commands (For Scripting)
 

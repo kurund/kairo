@@ -74,7 +74,7 @@ class KairoApp(App):
 
     #nav_container Button {
         margin: 0 1;
-        min-width: 12;
+        min-width: 10;
     }
 
     DataTable {
@@ -158,11 +158,9 @@ class KairoApp(App):
                     yield Static("[bold]Week Navigation[/bold]")
                     with Horizontal():
                         yield Button("◄ Prev", id="prev_week_btn", variant="default")
+                        yield Button("This Week", id="this_week_btn", variant="primary")
                         yield Button("Next ►", id="next_week_btn", variant="default")
                     with Horizontal():
-                        yield Button(
-                            "Current", id="current_week_btn", variant="primary"
-                        )
                         yield Button("Rollover", id="rollover_btn", variant="warning")
 
             # Right panel - task table
@@ -391,7 +389,7 @@ Completion: {completion_rate:.0f}%"""
             self.action_prev_week()
         elif event.button.id == "next_week_btn":
             self.action_next_week()
-        elif event.button.id == "current_week_btn":
+        elif event.button.id == "this_week_btn":
             year, week = get_current_week()
             self.current_year = year
             self.current_week = week
