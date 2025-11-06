@@ -143,25 +143,25 @@ class TaskDetailScreen(ModalScreen[None]):
     """
 
     def __init__(self, task: Task):
+        self._task_data = task
         super().__init__()
-        self.task = task
 
     def compose(self) -> ComposeResult:
         """Compose the task detail dialog."""
         with Vertical(id="detail_dialog"):
-            yield Label(f"[bold]{self.task.title}[/bold]")
-            yield Label(f"[dim]ID: {self.task.id}[/dim]")
+            yield Label(f"[bold]{self._task_data.title}[/bold]")
+            yield Label(f"[dim]ID: {self._task_data.id}[/dim]")
             yield Label(
-                f"Status: {'✓ Completed' if self.task.status == TaskStatus.COMPLETED else '○ Open'}"
+                f"Status: {'✓ Completed' if self._task_data.status == TaskStatus.COMPLETED else '○ Open'}"
             )
-            yield Label(f"Week: {format_week(self.task.year, self.task.week)}")
-            yield Label(f"Created: {self.task.created_at.strftime('%Y-%m-%d %H:%M')}")
-            if self.task.completed_at:
+            yield Label(f"Week: {format_week(self._task_data.year, self._task_data.week)}")
+            yield Label(f"Created: {self._task_data.created_at.strftime('%Y-%m-%d %H:%M')}")
+            if self._task_data.completed_at:
                 yield Label(
-                    f"Completed: {self.task.completed_at.strftime('%Y-%m-%d %H:%M')}"
+                    f"Completed: {self._task_data.completed_at.strftime('%Y-%m-%d %H:%M')}"
                 )
-            if self.task.description:
-                yield Label(f"\nDescription:\n{self.task.description}")
+            if self._task_data.description:
+                yield Label(f"\nDescription:\n{self._task_data.description}")
             with Horizontal():
                 yield Button("Close", variant="primary", id="close_btn")
 
