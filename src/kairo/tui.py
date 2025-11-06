@@ -257,7 +257,15 @@ class KairoApp(App):
         else:
             tasks = self.db.list_tasks(week=self.current_week, year=self.current_year)
 
-        stats = self.db.get_week_stats(self.current_year, self.current_week)
+        # Calculate stats from filtered tasks
+        stats = {
+            "total": len(tasks),
+            "completed": sum(1 for t in tasks if t.status == TaskStatus.COMPLETED),
+            "open": sum(1 for t in tasks if t.status == TaskStatus.OPEN),
+            "total_estimate": sum(t.estimate for t in tasks if t.estimate),
+            "completed_estimate": sum(t.estimate for t in tasks if t.estimate and t.status == TaskStatus.COMPLETED),
+            "open_estimate": sum(t.estimate for t in tasks if t.estimate and t.status == TaskStatus.OPEN),
+        }
 
         # Update status bar
         week_str = format_week(self.current_year, self.current_week)
