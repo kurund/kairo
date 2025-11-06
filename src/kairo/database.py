@@ -265,6 +265,55 @@ class Database:
         self.conn.commit()
         return cursor.rowcount > 0
 
+    def update_task(
+        self,
+        task_id: int,
+        title: Optional[str] = None,
+        description: Optional[str] = None,
+        tags: Optional[list[str]] = None,
+    ) -> bool:
+        """Update task fields.
+
+        Args:
+            task_id: Task ID
+            title: New title (optional)
+            description: New description (optional)
+            tags: New list of tags (optional, replaces existing tags)
+
+        Returns:
+            True if task was found and updated, False otherwise
+        """
+        cursor = self.conn.cursor()
+
+        # Update title and/or description
+        updates = []
+        params = []
+
+        if title is not None:
+            updates.append("title = ?")
+            params.append(title)
+
+        if description is not None:
+            updates.append("description = ?")
+            params.append(description)
+
+        if updates:
+            params.append(task_id)
+            query = f"UPDATE tasks SET {', '.join(updates)} WHERE id = ?"
+            cursor.execute(query, params)
+
+        # Update tags if provided
+        if tags is not None:
+            # Remove existing tags
+            cursor.execute("DELETE FROM task_tags WHERE task_id = ?", (task_id,))
+
+            # Add new tags
+            for tag_name in tags:
+                self._add_tag_to_task(task_id, tag_name)
+
+        self.conn.commit()
+        return cursor.rowcount > 0 or tags is not None
+
     def rollover_tasks(
         self, from_year: int, from_week: int, to_year: int, to_week: int
     ) -> int:

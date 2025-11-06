@@ -122,6 +122,104 @@ class AddTaskScreen(ModalScreen[bool]):
             desc_input.focus()
 
 
+class EditTaskScreen(ModalScreen[bool]):
+    """Modal screen for editing a task."""
+
+    CSS = """
+    EditTaskScreen {
+        align: center middle;
+    }
+
+    #edit_dialog {
+        width: 80;
+        height: auto;
+        border: thick $primary;
+        background: $surface;
+        padding: 1 2;
+    }
+
+    #edit_dialog Label {
+        margin: 1 0;
+    }
+
+    #edit_dialog Input {
+        margin-bottom: 1;
+    }
+
+    #edit_dialog TextArea {
+        height: 5;
+        margin-bottom: 1;
+    }
+
+    #edit_dialog Horizontal {
+        height: auto;
+        align: center middle;
+        margin-top: 1;
+    }
+
+    #edit_dialog Button {
+        margin: 0 1;
+    }
+    """
+
+    def __init__(self, task: Task):
+        self._task_data = task
+        super().__init__()
+
+    def compose(self) -> ComposeResult:
+        """Compose the edit task dialog."""
+        with Vertical(id="edit_dialog"):
+            yield Label(f"[bold]Edit Task - {self._task_data.id}[/bold]")
+            yield Label("Title:")
+            yield Input(
+                value=self._task_data.title,
+                placeholder="Enter task title",
+                id="title_input",
+            )
+            yield Label("Description:")
+            yield TextArea(self._task_data.description or "", id="desc_input")
+            yield Label("Tags (comma-separated):")
+            yield Input(
+                value=", ".join(self._task_data.tags) if self._task_data.tags else "",
+                placeholder="work, personal",
+                id="tags_input",
+            )
+            with Horizontal():
+                yield Button("Save", variant="primary", id="save_btn")
+                yield Button("Cancel", variant="default", id="cancel_btn")
+
+    def on_button_pressed(self, event: Button.Pressed) -> None:
+        """Handle button presses."""
+        if event.button.id == "save_btn":
+            title_input = self.query_one("#title_input", Input)
+            desc_input = self.query_one("#desc_input", TextArea)
+            tags_input = self.query_one("#tags_input", Input)
+
+            if title_input.value.strip():
+                # Parse tags from comma-separated input
+                tag_list = [
+                    tag.strip()
+                    for tag in tags_input.value.split(",")
+                    if tag.strip()
+                ]
+
+                db = Database()
+                try:
+                    db.update_task(
+                        self._task_data.id,
+                        title=title_input.value.strip(),
+                        description=desc_input.text.strip(),
+                        tags=tag_list,
+                    )
+                    self.dismiss(True)
+                finally:
+                    db.close()
+            else:
+                title_input.focus()
+        else:
+            self.dismiss(False)
+
+
 class ConfirmDeleteScreen(ModalScreen[bool]):
     """Modal screen for confirming task deletion."""
 
@@ -301,6 +399,7 @@ class KairoApp(App):
 
     BINDINGS = [
         Binding("a", "add_task", "Add Task", key_display="A"),
+        Binding("e", "edit_task", "Edit", key_display="E"),
         Binding("c", "complete_task", "Complete", key_display="C"),
         Binding("o", "reopen_task", "Reopen", key_display="O"),
         Binding("x", "delete_task", "Delete", key_display="X"),
@@ -428,6 +527,24 @@ Completion: {completion_rate:.0f}%"""
         self.push_screen(
             AddTaskScreen(self.current_year, self.current_week), handle_result
         )
+
+    def action_edit_task(self) -> None:
+        """Show edit task dialog."""
+        table = self.query_one("#task_table", DataTable)
+        if table.cursor_row is None or table.row_count == 0:
+            return
+
+        task_id = int(table.get_row_at(table.cursor_row)[0])
+        task = self.db.get_task(task_id)
+        if not task:
+            return
+
+        def handle_result(result: bool) -> None:
+            if result:
+                self.load_tasks()
+                self.notify(f"Task updated: {task.title}")
+
+        self.push_screen(EditTaskScreen(task), handle_result)
 
     def action_complete_task(self) -> None:
         """Mark selected task as complete."""

@@ -53,6 +53,7 @@ kairo
 #### TUI Keyboard Shortcuts
 
 - **A** - Add new task
+- **E** - Edit selected task
 - **C** - Complete selected task
 - **O** - Reopen completed task (mark as open)
 - **X** - Delete selected task (with confirmation)
@@ -115,6 +116,25 @@ kairo list --status completed
 kairo list --tag work
 kairo list --tag personal --status open
 kairo list --tag urgent --all
+```
+
+#### Edit a task
+
+```bash
+# Edit task title
+kairo edit 3 --title "New title"
+
+# Edit task description
+kairo edit 3 -d "New description"
+
+# Edit task tags
+kairo edit 3 -t "work,urgent"
+
+# Edit multiple fields at once
+kairo edit 3 --title "Updated title" -d "Updated description" -t "work,important"
+
+# Clear tags (empty string)
+kairo edit 3 -t ""
 ```
 
 #### Complete a task

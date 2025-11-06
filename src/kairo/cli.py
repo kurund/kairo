@@ -252,6 +252,54 @@ def delete(task_id: int):
 
 
 @cli.command()
+@click.argument("task_id", type=int)
+@click.option("--title", help="New task title")
+@click.option("-d", "--description", help="New task description")
+@click.option("-t", "--tags", help="New comma-separated list of tags")
+def edit(task_id: int, title: str, description: str, tags: str):
+    """Edit a task's title, description, or tags."""
+    db = Database()
+
+    try:
+        task = db.get_task(task_id)
+        if not task:
+            console.print(f"[red]Error:[/red] Task {task_id} not found.", err=True)
+            raise click.Abort()
+
+        if not title and not description and tags is None:
+            console.print(
+                "[yellow]No changes specified. Use --title, -d/--description, or -t/--tags.[/yellow]"
+            )
+            return
+
+        # Parse tags if provided
+        tag_list = None
+        if tags is not None:
+            tag_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
+
+        if db.update_task(
+            task_id, title=title if title else None, description=description if description else None, tags=tag_list
+        ):
+            console.print(f"\n[green]✓[/green] Task updated: [bold]{task.title}[/bold]")
+
+            if title:
+                console.print(f"  Title: {title}")
+            if description:
+                console.print(f"  Description: {description}")
+            if tag_list is not None:
+                console.print(f"  Tags: {', '.join(tag_list) if tag_list else 'None'}")
+            console.print()
+        else:
+            console.print(
+                f"[red]Error:[/red] Failed to update task {task_id}.", err=True
+            )
+            raise click.Abort()
+
+    finally:
+        db.close()
+
+
+@cli.command()
 @click.option(
     "-w", "--week", help="Week number or YYYY-Wnn format (defaults to current week)"
 )
