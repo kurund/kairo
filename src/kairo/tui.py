@@ -249,6 +249,10 @@ class KairoApp(App):
         Binding("c", "complete_task", "Complete", key_display="C"),
         Binding("d", "show_details", "Details", key_display="D"),
         Binding("r", "refresh", "Refresh", key_display="R"),
+        Binding("j", "cursor_down", "Down", show=False),
+        Binding("k", "cursor_up", "Up", show=False),
+        Binding("h", "prev_week", "Prev Week", show=False),
+        Binding("l", "next_week", "Next Week", show=False),
         Binding("left", "prev_week", "Prev Week", key_display="←"),
         Binding("right", "next_week", "Next Week", key_display="→"),
         Binding("q", "quit", "Quit", key_display="Q"),
@@ -309,6 +313,9 @@ class KairoApp(App):
         year, week = get_current_week()
         self.current_year = year
         self.current_week = week
+
+        # Set focus to task table
+        table.focus()
 
     def watch_current_year(self, year: int) -> None:
         """Watch for changes to current year."""
@@ -410,6 +417,16 @@ Completion: {completion_rate:.0f}%"""
     def action_refresh(self) -> None:
         """Refresh task list."""
         self.load_tasks()
+
+    def action_cursor_down(self) -> None:
+        """Move cursor down in task table (vim j)."""
+        table = self.query_one("#task_table", DataTable)
+        table.action_cursor_down()
+
+    def action_cursor_up(self) -> None:
+        """Move cursor up in task table (vim k)."""
+        table = self.query_one("#task_table", DataTable)
+        table.action_cursor_up()
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""

@@ -55,8 +55,8 @@ kairo
 - **C** - Complete selected task
 - **D** - View task details
 - **R** - Refresh task list
-- **←/→** - Navigate between weeks
-- **↑/↓** - Navigate task list
+- **←/→** or **H/L** - Navigate between weeks (vim style)
+- **↑/↓** or **J/K** - Navigate task list (vim style)
 - **Q** - Quit
 
 #### TUI Buttons
