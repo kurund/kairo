@@ -87,6 +87,40 @@ class Database:
         except sqlite3.OperationalError:
             cursor.execute("ALTER TABLE tasks ADD COLUMN project TEXT")
 
+        # Migration: Make week and year nullable (for inbox feature)
+        # Check if week/year have NOT NULL constraint by trying to insert NULL
+        cursor.execute("PRAGMA table_info(tasks)")
+        columns = {row[1]: row for row in cursor.fetchall()}
+
+        # If week column has notnull=1, we need to recreate the table
+        if columns.get("week") and columns["week"][3] == 1:  # notnull column is at index 3
+            # Recreate table without NOT NULL constraints on week/year
+            cursor.execute("""
+                CREATE TABLE tasks_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    description TEXT NOT NULL DEFAULT '',
+                    status TEXT NOT NULL DEFAULT 'open',
+                    week INTEGER,
+                    year INTEGER,
+                    created_at TEXT NOT NULL,
+                    completed_at TEXT,
+                    estimate INTEGER,
+                    project TEXT
+                )
+            """)
+
+            # Copy data
+            cursor.execute("""
+                INSERT INTO tasks_new (id, title, description, status, week, year, created_at, completed_at, estimate, project)
+                SELECT id, title, description, status, week, year, created_at, completed_at, estimate, project
+                FROM tasks
+            """)
+
+            # Drop old table and rename new one
+            cursor.execute("DROP TABLE tasks")
+            cursor.execute("ALTER TABLE tasks_new RENAME TO tasks")
+
         self.conn.commit()
 
     def add_task(
