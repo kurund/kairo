@@ -21,8 +21,8 @@ class Task:
     title: str
     description: str
     status: TaskStatus
-    week: int  # ISO week number
-    year: int  # Year for the week
+    week: Optional[int]  # ISO week number (None = inbox/unscheduled)
+    year: Optional[int]  # Year for the week (None = inbox/unscheduled)
     created_at: datetime
     completed_at: Optional[datetime] = None
     tags: list[str] = None  # List of tag names

@@ -3,11 +3,12 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Input, Label, TextArea
+from textual.widgets import Button, Checkbox, Input, Label, TextArea
 from textual.screen import ModalScreen
 
 from ..database import Database
 from ..models import Task
+from ..utils import get_current_week
 
 
 class EditTaskScreen(ModalScreen[bool]):
@@ -61,6 +62,9 @@ class EditTaskScreen(ModalScreen[bool]):
 
     def compose(self) -> ComposeResult:
         """Compose the edit task dialog."""
+        # Check if task is currently scheduled
+        is_scheduled = self._task_data.week is not None and self._task_data.year is not None
+
         with Vertical(id="edit_dialog"):
             yield Label(f"[bold]Edit Task - {self._task_data.id}[/bold]")
             yield Label("Title:")
@@ -90,6 +94,7 @@ class EditTaskScreen(ModalScreen[bool]):
                 id="estimate_input",
                 type="integer",
             )
+            yield Checkbox("Scheduled (uncheck to move to Inbox)", value=is_scheduled, id="schedule_checkbox")
             with Horizontal():
                 yield Button("Save", variant="primary", id="save_btn")
                 yield Button("Cancel", variant="default", id="cancel_btn")
@@ -101,6 +106,7 @@ class EditTaskScreen(ModalScreen[bool]):
         tags_input = self.query_one("#tags_input", Input)
         project_input = self.query_one("#project_input", Input)
         estimate_input = self.query_one("#estimate_input", Input)
+        schedule_checkbox = self.query_one("#schedule_checkbox", Checkbox)
 
         if title_input.value.strip():
             # Parse tags from comma-separated input
@@ -119,6 +125,20 @@ class EditTaskScreen(ModalScreen[bool]):
                 except ValueError:
                     pass  # Ignore invalid input
 
+            # Determine week/year based on schedule checkbox
+            if schedule_checkbox.value:
+                # Schedule to current week if moving from inbox
+                if self._task_data.week is None or self._task_data.year is None:
+                    year, week = get_current_week()
+                else:
+                    # Keep existing schedule
+                    week = self._task_data.week
+                    year = self._task_data.year
+            else:
+                # Move to inbox (unschedule)
+                week = None
+                year = None
+
             db = Database()
             try:
                 db.update_task(
@@ -128,6 +148,8 @@ class EditTaskScreen(ModalScreen[bool]):
                     tags=tag_list,
                     estimate=estimate,
                     project=project,
+                    week=week,
+                    year=year,
                 )
                 self.dismiss(True)
             finally:

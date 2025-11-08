@@ -42,8 +42,8 @@ class Database:
                 title TEXT NOT NULL,
                 description TEXT NOT NULL DEFAULT '',
                 status TEXT NOT NULL DEFAULT 'open',
-                week INTEGER NOT NULL,
-                year INTEGER NOT NULL,
+                week INTEGER,
+                year INTEGER,
                 created_at TEXT NOT NULL,
                 completed_at TEXT,
                 estimate INTEGER,
@@ -98,23 +98,30 @@ class Database:
         tags: list[str] = None,
         estimate: Optional[int] = None,
         project: Optional[str] = None,
+        schedule: bool = True,
     ) -> Task:
         """Add a new task.
 
         Args:
             title: Task title
             description: Task description
-            week: ISO week number (defaults to current week)
-            year: Year (defaults to current year)
+            week: ISO week number (used if schedule=True, defaults to current week)
+            year: Year (used if schedule=True, defaults to current year)
             tags: List of tag names
             estimate: Estimated time in hours
             project: Project name
+            schedule: If True, schedule for a week; if False, add to inbox (week/year=NULL)
 
         Returns:
             Created task
         """
-        if week is None or year is None:
-            year, week = get_current_week()
+        if schedule:
+            if week is None or year is None:
+                year, week = get_current_week()
+        else:
+            # Inbox task - unscheduled
+            week = None
+            year = None
 
         if tags is None:
             tags = []
@@ -192,12 +199,12 @@ class Database:
             week: Filter by week number
             year: Filter by year
             status: Filter by status
-            show_all: If True, show all tasks regardless of week
+            show_all: If True, show all scheduled tasks regardless of week
 
         Returns:
-            List of tasks
+            List of tasks (excludes inbox tasks with NULL week/year)
         """
-        query = "SELECT * FROM tasks WHERE 1=1"
+        query = "SELECT * FROM tasks WHERE week IS NOT NULL AND year IS NOT NULL"
         params = []
 
         if not show_all:
@@ -298,6 +305,8 @@ class Database:
         tags: Any = _UNSET,
         estimate: Any = _UNSET,
         project: Any = _UNSET,
+        week: Any = _UNSET,
+        year: Any = _UNSET,
     ) -> bool:
         """Update task fields.
 
@@ -308,13 +317,15 @@ class Database:
             tags: New list of tags (pass _UNSET to not update, empty list to clear, or value to set)
             estimate: Estimated time in hours (pass _UNSET to not update, None to clear, or value to set)
             project: Project name (pass _UNSET to not update, None to clear, or value to set)
+            week: Week number (pass _UNSET to not update, None for inbox, or value to schedule)
+            year: Year (pass _UNSET to not update, None for inbox, or value to schedule)
 
         Returns:
             True if task was found and updated, False otherwise
         """
         cursor = self.conn.cursor()
 
-        # Update title and/or description and/or estimate and/or project
+        # Update title and/or description and/or estimate and/or project and/or week/year
         updates = []
         params = []
 
@@ -333,6 +344,14 @@ class Database:
         if project is not _UNSET:
             updates.append("project = ?")
             params.append(project)
+
+        if week is not _UNSET:
+            updates.append("week = ?")
+            params.append(week)
+
+        if year is not _UNSET:
+            updates.append("year = ?")
+            params.append(year)
 
         if updates:
             params.append(task_id)
@@ -632,6 +651,30 @@ class Database:
                 year, week = get_current_week()
             query += " AND week = ? AND year = ?"
             params.extend([week, year])
+
+        if status is not None:
+            query += " AND status = ?"
+            params.append(status.value)
+
+        query += " ORDER BY created_at DESC"
+
+        cursor = self.conn.cursor()
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+
+        return [self._row_to_task(row) for row in rows]
+
+    def list_inbox_tasks(self, status: Optional[TaskStatus] = None) -> list[Task]:
+        """List inbox tasks (unscheduled tasks with week/year = NULL).
+
+        Args:
+            status: Filter by status (optional)
+
+        Returns:
+            List of inbox tasks
+        """
+        query = "SELECT * FROM tasks WHERE week IS NULL AND year IS NULL"
+        params = []
 
         if status is not None:
             query += " AND status = ?"

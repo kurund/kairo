@@ -108,6 +108,7 @@ class KairoApp(App):
         Binding("d", "show_details", "Details", key_display="D"),
         Binding("f", "filter_by_tag", "Filter Tag", key_display="F"),
         Binding("p", "filter_by_project", "Filter Project", key_display="P"),
+        Binding("i", "toggle_inbox", "Inbox", key_display="I"),
         Binding("r", "refresh", "Refresh", key_display="R"),
         Binding("j", "cursor_down", "Down", show=False),
         Binding("k", "cursor_up", "Up", show=False),
@@ -122,12 +123,17 @@ class KairoApp(App):
     current_week = reactive(0)
     current_tag_filter = reactive("")
     current_project_filter = reactive("")
+    inbox_tag_filter = reactive("")
+    inbox_project_filter = reactive("")
+    viewing_inbox = reactive(False)
 
     def __init__(self):
         super().__init__()
         self.db = Database()
         self._loaded_tag_filter = None
         self._loaded_project_filter = None
+        self._loaded_inbox_tag_filter = None
+        self._loaded_inbox_project_filter = None
         self._load_state()
 
     def _load_state(self):
@@ -138,6 +144,8 @@ class KairoApp(App):
                     state = json.load(f)
                     self._loaded_tag_filter = state.get("tag_filter", "")
                     self._loaded_project_filter = state.get("project_filter", "")
+                    self._loaded_inbox_tag_filter = state.get("inbox_tag_filter", "")
+                    self._loaded_inbox_project_filter = state.get("inbox_project_filter", "")
         except Exception:
             # Ignore errors loading state
             pass
@@ -151,6 +159,8 @@ class KairoApp(App):
                     {
                         "tag_filter": self.current_tag_filter,
                         "project_filter": self.current_project_filter,
+                        "inbox_tag_filter": self.inbox_tag_filter,
+                        "inbox_project_filter": self.inbox_project_filter,
                     },
                     f,
                 )
@@ -240,6 +250,13 @@ class KairoApp(App):
         if self._loaded_project_filter:
             self.current_project_filter = self._loaded_project_filter
 
+        # Apply loaded inbox filters if any
+        if self._loaded_inbox_tag_filter:
+            self.inbox_tag_filter = self._loaded_inbox_tag_filter
+
+        if self._loaded_inbox_project_filter:
+            self.inbox_project_filter = self._loaded_inbox_project_filter
+
         # Set focus to task table
         table.focus()
 
@@ -261,10 +278,32 @@ class KairoApp(App):
         self.load_tasks()
         self._save_state()
 
+    def watch_inbox_tag_filter(self, _tag_filter: str) -> None:
+        """Watch for changes to inbox tag filter."""
+        self.load_tasks()
+        self._save_state()
+
+    def watch_inbox_project_filter(self, _project_filter: str) -> None:
+        """Watch for changes to inbox project filter."""
+        self.load_tasks()
+        self._save_state()
+
+    def watch_viewing_inbox(self, _viewing_inbox: bool) -> None:
+        """Watch for changes to inbox viewing mode."""
+        self.load_tasks()
+
     def load_tasks(self) -> None:
-        """Load and display tasks for current week."""
-        # Load tasks with optional tag and/or project filter
-        if self.current_tag_filter and self.current_project_filter:
+        """Load and display tasks for current week or inbox."""
+        # Load tasks based on viewing mode
+        if self.viewing_inbox:
+            # Load inbox tasks (unscheduled) using inbox-specific filters
+            tasks = self.db.list_inbox_tasks()
+            # Apply inbox filters
+            if self.inbox_tag_filter:
+                tasks = [t for t in tasks if self.inbox_tag_filter in t.tags]
+            if self.inbox_project_filter:
+                tasks = [t for t in tasks if t.project == self.inbox_project_filter]
+        elif self.current_tag_filter and self.current_project_filter:
             # Both filters: get tag filtered tasks, then filter by project
             tasks = self.db.list_tasks_by_tag(
                 tag=self.current_tag_filter,
@@ -298,18 +337,28 @@ class KairoApp(App):
         }
 
         # Update status bar
-        week_str = format_week(self.current_year, self.current_week)
         status_bar = self.query_one("#status_bar", Static)
 
-        # Build filter text
-        filters = []
-        if self.current_tag_filter:
-            filters.append(f"Tag: {self.current_tag_filter}")
-        if self.current_project_filter:
-            filters.append(f"Project: {self.current_project_filter}")
+        if self.viewing_inbox:
+            view_str = "Inbox"
+            # Build filter text for inbox
+            filters = []
+            if self.inbox_tag_filter:
+                filters.append(f"Tag: {self.inbox_tag_filter}")
+            if self.inbox_project_filter:
+                filters.append(f"Project: {self.inbox_project_filter}")
+        else:
+            week_str = format_week(self.current_year, self.current_week)
+            view_str = f"Week {week_str}"
+            # Build filter text for weekly view
+            filters = []
+            if self.current_tag_filter:
+                filters.append(f"Tag: {self.current_tag_filter}")
+            if self.current_project_filter:
+                filters.append(f"Project: {self.current_project_filter}")
 
         filter_text = f" [cyan]| {' | '.join(filters)}[/cyan]" if filters else ""
-        status_bar.update(f"[bold]Kairo - Week {week_str}{filter_text}[/bold]")
+        status_bar.update(f"[bold]Kairo - {view_str}{filter_text}[/bold]")
 
         # Update stats
         stats_display = self.query_one("#stats_display", Static)
@@ -442,14 +491,20 @@ Total: {stats['total_estimate']}h
 
         def handle_result(tag_filter: str | None) -> None:
             if tag_filter is not None:  # None means cancelled
-                self.current_tag_filter = tag_filter
+                if self.viewing_inbox:
+                    self.inbox_tag_filter = tag_filter
+                else:
+                    self.current_tag_filter = tag_filter
+
                 if tag_filter:
                     self.notify(f"Filtered by tag: {tag_filter}")
                 else:
                     self.notify("Filter cleared - showing all tasks")
 
+        # Use the appropriate filter based on current view
+        current_filter = self.inbox_tag_filter if self.viewing_inbox else self.current_tag_filter
         self.push_screen(
-            FilterTagScreen(self.current_tag_filter, available_tags), handle_result
+            FilterTagScreen(current_filter, available_tags), handle_result
         )
 
     def action_filter_by_project(self) -> None:
@@ -458,16 +513,31 @@ Total: {stats['total_estimate']}h
 
         def handle_result(project_filter: str | None) -> None:
             if project_filter is not None:  # None means cancelled
-                self.current_project_filter = project_filter
+                if self.viewing_inbox:
+                    self.inbox_project_filter = project_filter
+                else:
+                    self.current_project_filter = project_filter
+
                 if project_filter:
                     self.notify(f"Filtered by project: {project_filter}")
                 else:
                     self.notify("Filter cleared - showing all tasks")
 
+        # Use the appropriate filter based on current view
+        current_filter = self.inbox_project_filter if self.viewing_inbox else self.current_project_filter
         self.push_screen(
-            FilterProjectScreen(self.current_project_filter, available_projects),
+            FilterProjectScreen(current_filter, available_projects),
             handle_result,
         )
+
+    def action_toggle_inbox(self) -> None:
+        """Toggle between inbox and weekly view."""
+        self.viewing_inbox = not self.viewing_inbox
+        if self.viewing_inbox:
+            self.notify("Viewing Inbox (unscheduled tasks)")
+        else:
+            week_str = format_week(self.current_year, self.current_week)
+            self.notify(f"Viewing {week_str}")
 
     def action_prev_week(self) -> None:
         """Go to previous week."""

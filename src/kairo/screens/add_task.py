@@ -3,7 +3,7 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Input, Label, TextArea
+from textual.widgets import Button, Checkbox, Input, Label, TextArea
 from textual.screen import ModalScreen
 
 from ..database import Database
@@ -76,6 +76,7 @@ class AddTaskScreen(ModalScreen[bool]):
             yield Input(placeholder="e.g., Website Redesign", id="project_input")
             yield Label("Estimate (hours, optional):")
             yield Input(placeholder="e.g., 2", id="estimate_input", type="integer")
+            yield Checkbox("Schedule for this week", value=True, id="schedule_checkbox")
             with Horizontal():
                 yield Button("Add", variant="primary", id="add_btn")
                 yield Button("Cancel", variant="default", id="cancel_btn")
@@ -87,6 +88,7 @@ class AddTaskScreen(ModalScreen[bool]):
         tags_input = self.query_one("#tags_input", Input)
         project_input = self.query_one("#project_input", Input)
         estimate_input = self.query_one("#estimate_input", Input)
+        schedule_checkbox = self.query_one("#schedule_checkbox", Checkbox)
 
         if title_input.value.strip():
             # Parse tags from comma-separated input
@@ -115,6 +117,7 @@ class AddTaskScreen(ModalScreen[bool]):
                     tags=tag_list,
                     estimate=estimate,
                     project=project,
+                    schedule=schedule_checkbox.value,
                 )
                 self.dismiss(True)
             finally:
