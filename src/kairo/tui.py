@@ -104,8 +104,7 @@ class KairoApp(App):
     BINDINGS = [
         Binding("a", "add_task", "Add Task", key_display="a"),
         Binding("e", "edit_task", "Edit", key_display="e"),
-        Binding("c", "complete_task", "Complete", key_display="c"),
-        Binding("o", "reopen_task", "Reopen", key_display="o"),
+        Binding("c", "toggle_complete", "Toggle Complete", key_display="c"),
         Binding("x", "delete_task", "Delete", key_display="x"),
         Binding("d", "show_details", "Details", key_display="d"),
         Binding("f", "filter_by_tag", "Filter Tag", key_display="f"),
@@ -473,25 +472,24 @@ Total: {stats['total_estimate']}h
 
         self.push_screen(EditTaskScreen(task), handle_result)
 
-    def action_complete_task(self) -> None:
-        """Mark selected task as complete."""
+    def action_toggle_complete(self) -> None:
+        """Toggle task completion status (complete ↔ reopen)."""
         table = self.query_one("#task_table", DataTable)
         if table.cursor_row is None or table.row_count == 0:
             return
 
         task_id = int(table.get_row_at(table.cursor_row)[0])
-        if self.db.complete_task(task_id):
-            self.load_tasks()
-
-    def action_reopen_task(self) -> None:
-        """Mark selected completed task as open again."""
-        table = self.query_one("#task_table", DataTable)
-        if table.cursor_row is None or table.row_count == 0:
+        task = self.db.get_task(task_id)
+        if not task:
             return
 
-        task_id = int(table.get_row_at(table.cursor_row)[0])
-        if self.db.reopen_task(task_id):
-            self.load_tasks()
+        # Toggle based on current status
+        if task.status == TaskStatus.COMPLETED:
+            if self.db.reopen_task(task_id):
+                self.load_tasks()
+        else:
+            if self.db.complete_task(task_id):
+                self.load_tasks()
 
     def action_delete_task(self) -> None:
         """Delete selected task with confirmation."""
