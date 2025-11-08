@@ -102,25 +102,24 @@ class KairoApp(App):
     """
 
     BINDINGS = [
-        Binding("a", "add_task", "Add Task", key_display="A"),
-        Binding("e", "edit_task", "Edit", key_display="E"),
-        Binding("c", "complete_task", "Complete", key_display="C"),
-        Binding("o", "reopen_task", "Reopen", key_display="O"),
-        Binding("x", "delete_task", "Delete", key_display="X"),
-        Binding("d", "show_details", "Details", key_display="D"),
-        Binding("f", "filter_by_tag", "Filter Tag", key_display="F"),
-        Binding("p", "filter_by_project", "Filter Project", key_display="P"),
-        Binding("i", "toggle_inbox", "Inbox", key_display="I"),
-        Binding("w", "show_weekly_plan", "Weekly Plan", key_display="W"),
-        Binding("s", "show_weekly_report", "Weekly Report", key_display="S"),
-        Binding("r", "refresh", "Refresh", key_display="R"),
+        Binding("a", "add_task", "Add Task", key_display="a"),
+        Binding("e", "edit_task", "Edit", key_display="e"),
+        Binding("c", "complete_task", "Complete", key_display="c"),
+        Binding("o", "reopen_task", "Reopen", key_display="o"),
+        Binding("x", "delete_task", "Delete", key_display="x"),
+        Binding("d", "show_details", "Details", key_display="d"),
+        Binding("f", "filter_by_tag", "Filter Tag", key_display="f"),
+        Binding("p", "filter_by_project", "Filter Project", key_display="p"),
+        Binding("i", "toggle_inbox", "Inbox", key_display="i"),
+        Binding("w", "show_weekly_plan", "Weekly Plan", key_display="w"),
+        Binding("s", "show_weekly_report", "Weekly Report", key_display="s"),
         Binding("j", "cursor_down", "Down", show=False),
         Binding("k", "cursor_up", "Up", show=False),
         Binding("h", "prev_week", "Prev Week", show=False),
         Binding("l", "next_week", "Next Week", show=False),
         Binding("left", "prev_week", "Prev Week", key_display="←"),
         Binding("right", "next_week", "Next Week", key_display="→"),
-        Binding("q", "quit", "Quit", key_display="Q"),
+        Binding("q", "quit", "Quit", key_display="q"),
     ]
 
     current_year = reactive(0)
@@ -612,10 +611,6 @@ Total: {stats['total_estimate']}h
         self.current_year, self.current_week = get_next_week(
             self.current_year, self.current_week
         )
-
-    def action_refresh(self) -> None:
-        """Refresh task list."""
-        self.load_tasks()
 
     def action_cursor_down(self) -> None:
         """Move cursor down in task table (vim j)."""
