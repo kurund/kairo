@@ -104,6 +104,7 @@ class KairoApp(App):
         Binding("a", "add_task", "Add Task", key_display="a"),
         Binding("e", "edit_task", "Edit", key_display="e"),
         Binding("c", "toggle_complete", "Toggle Complete", key_display="c"),
+        Binding("t", "toggle_schedule", "Toggle Schedule", key_display="t"),
         Binding("x", "delete_task", "Delete", key_display="x"),
         Binding("d", "show_details", "Details", key_display="d"),
         Binding("f", "filter_by_tag", "Filter Tag", key_display="f"),
@@ -497,6 +498,32 @@ Total: {stats['total_estimate']}h
         else:
             if self.db.complete_task(task_id):
                 self.load_tasks()
+
+    def action_toggle_schedule(self) -> None:
+        """Toggle task between inbox and current week."""
+        table = self.query_one("#task_table", DataTable)
+        if table.cursor_row is None or table.row_count == 0:
+            return
+
+        task_id = int(table.get_row_at(table.cursor_row)[0])
+        task = self.db.get_task(task_id)
+        if not task:
+            return
+
+        # Toggle based on current schedule status
+        if task.week is None or task.year is None:
+            # Task is in inbox - schedule it to current week
+            self.db.update_task(
+                task_id, week=self.current_week, year=self.current_year
+            )
+            week_str = format_week(self.current_year, self.current_week)
+            self.notify(f"Task scheduled to {week_str}: {task.title}")
+        else:
+            # Task is scheduled - move it to inbox
+            self.db.update_task(task_id, week=None, year=None)
+            self.notify(f"Task moved to inbox: {task.title}")
+
+        self.load_tasks()
 
     def action_delete_task(self) -> None:
         """Delete selected task with confirmation."""
