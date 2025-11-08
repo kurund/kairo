@@ -6,7 +6,7 @@ from textual.containers import Horizontal, Vertical
 from textual.widgets import Button, Static
 from textual.screen import ModalScreen
 
-from ..models import Task, TaskStatus
+from ..models import Task
 from ..utils import format_week
 
 
@@ -75,6 +75,9 @@ class WeeklyPlanScreen(ModalScreen[None]):
             lines.append(f"Total Estimated Hours: {total_estimate}h")
         lines.append("")
 
+        lines.append("My plan for this week:")
+        lines.append("")
+
         # Group tasks by project
         projects = {}
         unassigned = []
@@ -134,6 +137,7 @@ class WeeklyPlanScreen(ModalScreen[None]):
         """Copy plan to clipboard."""
         try:
             import pyperclip
+
             pyperclip.copy(self._plan_text)
             self.notify("Weekly plan copied to clipboard!")
         except ImportError:
@@ -143,9 +147,7 @@ class WeeklyPlanScreen(ModalScreen[None]):
                 severity="warning",
             )
         except Exception as e:
-            self.notify(
-                f"Error copying to clipboard: {str(e)}", severity="error"
-            )
+            self.notify(f"Error copying to clipboard: {str(e)}", severity="error")
 
     def action_close(self) -> None:
         """Close the dialog."""
