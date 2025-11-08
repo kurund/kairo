@@ -16,6 +16,7 @@ from .screens import (
     AddTaskScreen,
     EditTaskScreen,
     FilterTagScreen,
+    FilterProjectScreen,
     ConfirmDeleteScreen,
     TaskDetailScreen,
 )
@@ -105,7 +106,8 @@ class KairoApp(App):
         Binding("o", "reopen_task", "Reopen", key_display="O"),
         Binding("x", "delete_task", "Delete", key_display="X"),
         Binding("d", "show_details", "Details", key_display="D"),
-        Binding("f", "filter_by_tag", "Filter", key_display="F"),
+        Binding("f", "filter_by_tag", "Filter Tag", key_display="F"),
+        Binding("p", "filter_by_project", "Filter Project", key_display="P"),
         Binding("r", "refresh", "Refresh", key_display="R"),
         Binding("j", "cursor_down", "Down", show=False),
         Binding("k", "cursor_up", "Up", show=False),
@@ -119,11 +121,13 @@ class KairoApp(App):
     current_year = reactive(0)
     current_week = reactive(0)
     current_tag_filter = reactive("")
+    current_project_filter = reactive("")
 
     def __init__(self):
         super().__init__()
         self.db = Database()
         self._loaded_tag_filter = None
+        self._loaded_project_filter = None
         self._load_state()
 
     def _load_state(self):
@@ -133,6 +137,7 @@ class KairoApp(App):
                 with open(self.STATE_FILE) as f:
                     state = json.load(f)
                     self._loaded_tag_filter = state.get("tag_filter", "")
+                    self._loaded_project_filter = state.get("project_filter", "")
         except Exception:
             # Ignore errors loading state
             pass
@@ -145,6 +150,7 @@ class KairoApp(App):
                 json.dump(
                     {
                         "tag_filter": self.current_tag_filter,
+                        "project_filter": self.current_project_filter,
                     },
                     f,
                 )
@@ -230,6 +236,10 @@ class KairoApp(App):
         if self._loaded_tag_filter:
             self.current_tag_filter = self._loaded_tag_filter
 
+        # Apply loaded project filter if any
+        if self._loaded_project_filter:
+            self.current_project_filter = self._loaded_project_filter
+
         # Set focus to task table
         table.focus()
 
@@ -246,12 +256,31 @@ class KairoApp(App):
         self.load_tasks()
         self._save_state()
 
+    def watch_current_project_filter(self, _project_filter: str) -> None:
+        """Watch for changes to project filter."""
+        self.load_tasks()
+        self._save_state()
+
     def load_tasks(self) -> None:
         """Load and display tasks for current week."""
-        # Load tasks with optional tag filter
-        if self.current_tag_filter:
+        # Load tasks with optional tag and/or project filter
+        if self.current_tag_filter and self.current_project_filter:
+            # Both filters: get tag filtered tasks, then filter by project
             tasks = self.db.list_tasks_by_tag(
                 tag=self.current_tag_filter,
+                week=self.current_week,
+                year=self.current_year,
+            )
+            tasks = [t for t in tasks if t.project == self.current_project_filter]
+        elif self.current_tag_filter:
+            tasks = self.db.list_tasks_by_tag(
+                tag=self.current_tag_filter,
+                week=self.current_week,
+                year=self.current_year,
+            )
+        elif self.current_project_filter:
+            tasks = self.db.list_tasks_by_project(
+                project=self.current_project_filter,
                 week=self.current_week,
                 year=self.current_year,
             )
@@ -271,11 +300,15 @@ class KairoApp(App):
         # Update status bar
         week_str = format_week(self.current_year, self.current_week)
         status_bar = self.query_one("#status_bar", Static)
-        filter_text = (
-            f" [cyan]| Filter: {self.current_tag_filter}[/cyan]"
-            if self.current_tag_filter
-            else ""
-        )
+
+        # Build filter text
+        filters = []
+        if self.current_tag_filter:
+            filters.append(f"Tag: {self.current_tag_filter}")
+        if self.current_project_filter:
+            filters.append(f"Project: {self.current_project_filter}")
+
+        filter_text = f" [cyan]| {' | '.join(filters)}[/cyan]" if filters else ""
         status_bar.update(f"[bold]Kairo - Week {week_str}{filter_text}[/bold]")
 
         # Update stats
@@ -417,6 +450,23 @@ Total: {stats['total_estimate']}h
 
         self.push_screen(
             FilterTagScreen(self.current_tag_filter, available_tags), handle_result
+        )
+
+    def action_filter_by_project(self) -> None:
+        """Show filter by project dialog."""
+        available_projects = self.db.get_all_projects()
+
+        def handle_result(project_filter: str | None) -> None:
+            if project_filter is not None:  # None means cancelled
+                self.current_project_filter = project_filter
+                if project_filter:
+                    self.notify(f"Filtered by project: {project_filter}")
+                else:
+                    self.notify("Filter cleared - showing all tasks")
+
+        self.push_screen(
+            FilterProjectScreen(self.current_project_filter, available_projects),
+            handle_result,
         )
 
     def action_prev_week(self) -> None:

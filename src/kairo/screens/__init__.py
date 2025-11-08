@@ -3,6 +3,7 @@
 from .add_task import AddTaskScreen
 from .edit_task import EditTaskScreen
 from .filter_tag import FilterTagScreen
+from .filter_project import FilterProjectScreen
 from .confirm_delete import ConfirmDeleteScreen
 from .task_detail import TaskDetailScreen
 
@@ -10,6 +11,7 @@ __all__ = [
     "AddTaskScreen",
     "EditTaskScreen",
     "FilterTagScreen",
+    "FilterProjectScreen",
     "ConfirmDeleteScreen",
     "TaskDetailScreen",
 ]

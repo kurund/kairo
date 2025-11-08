@@ -545,6 +545,18 @@ class Database:
         cursor.execute("SELECT name FROM tags ORDER BY name")
         return [row["name"] for row in cursor.fetchall()]
 
+    def get_all_projects(self) -> list[str]:
+        """Get all unique projects.
+
+        Returns:
+            List of project names
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(
+            "SELECT DISTINCT project FROM tasks WHERE project IS NOT NULL ORDER BY project"
+        )
+        return [row["project"] for row in cursor.fetchall()]
+
     def list_tasks_by_tag(
         self,
         tag: str,
