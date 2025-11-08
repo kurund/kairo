@@ -3,8 +3,8 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Static
 from textual.screen import ModalScreen
+from textual.widgets import Button, Static
 
 from ..models import Task
 from ..utils import format_week
@@ -95,9 +95,7 @@ class WeeklyPlanScreen(ModalScreen[None]):
             for project, project_tasks in sorted(projects.items()):
                 lines.append(f"{project}:")
                 for task in project_tasks:
-                    estimate_str = f" ({task.estimate}h)" if task.estimate else ""
-                    tags_str = f" [{', '.join(task.tags)}]" if task.tags else ""
-                    lines.append(f"  • {task.title}{estimate_str}{tags_str}")
+                    lines.append(f"  • {task.title}")
                 lines.append("")
 
         # Display unassigned tasks
@@ -105,9 +103,7 @@ class WeeklyPlanScreen(ModalScreen[None]):
             if projects:  # Only add header if we had projects
                 lines.append("Other:")
             for task in unassigned:
-                estimate_str = f" ({task.estimate}h)" if task.estimate else ""
-                tags_str = f" [{', '.join(task.tags)}]" if task.tags else ""
-                lines.append(f"  • {task.title}{estimate_str}{tags_str}")
+                lines.append(f"  • {task.title}")
 
         return "\n".join(lines)
 
