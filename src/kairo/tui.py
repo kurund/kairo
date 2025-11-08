@@ -145,7 +145,9 @@ class KairoApp(App):
                     self._loaded_tag_filter = state.get("tag_filter", "")
                     self._loaded_project_filter = state.get("project_filter", "")
                     self._loaded_inbox_tag_filter = state.get("inbox_tag_filter", "")
-                    self._loaded_inbox_project_filter = state.get("inbox_project_filter", "")
+                    self._loaded_inbox_project_filter = state.get(
+                        "inbox_project_filter", ""
+                    )
         except Exception:
             # Ignore errors loading state
             pass
@@ -332,8 +334,14 @@ class KairoApp(App):
             "completed": sum(1 for t in tasks if t.status == TaskStatus.COMPLETED),
             "open": sum(1 for t in tasks if t.status == TaskStatus.OPEN),
             "total_estimate": sum(t.estimate for t in tasks if t.estimate),
-            "completed_estimate": sum(t.estimate for t in tasks if t.estimate and t.status == TaskStatus.COMPLETED),
-            "open_estimate": sum(t.estimate for t in tasks if t.estimate and t.status == TaskStatus.OPEN),
+            "completed_estimate": sum(
+                t.estimate
+                for t in tasks
+                if t.estimate and t.status == TaskStatus.COMPLETED
+            ),
+            "open_estimate": sum(
+                t.estimate for t in tasks if t.estimate and t.status == TaskStatus.OPEN
+            ),
         }
 
         # Update status bar
@@ -413,8 +421,22 @@ Total: {stats['total_estimate']}h
             if result:
                 self.load_tasks()
 
+        # Use the appropriate filters based on current view
+        if self.viewing_inbox:
+            default_tag = self.inbox_tag_filter
+            default_project = self.inbox_project_filter
+        else:
+            default_tag = self.current_tag_filter
+            default_project = self.current_project_filter
+
         self.push_screen(
-            AddTaskScreen(self.current_year, self.current_week), handle_result
+            AddTaskScreen(
+                self.current_year,
+                self.current_week,
+                default_tag=default_tag,
+                default_project=default_project,
+            ),
+            handle_result,
         )
 
     def action_edit_task(self) -> None:
@@ -502,10 +524,10 @@ Total: {stats['total_estimate']}h
                     self.notify("Filter cleared - showing all tasks")
 
         # Use the appropriate filter based on current view
-        current_filter = self.inbox_tag_filter if self.viewing_inbox else self.current_tag_filter
-        self.push_screen(
-            FilterTagScreen(current_filter, available_tags), handle_result
+        current_filter = (
+            self.inbox_tag_filter if self.viewing_inbox else self.current_tag_filter
         )
+        self.push_screen(FilterTagScreen(current_filter, available_tags), handle_result)
 
     def action_filter_by_project(self) -> None:
         """Show filter by project dialog."""
@@ -524,7 +546,11 @@ Total: {stats['total_estimate']}h
                     self.notify("Filter cleared - showing all tasks")
 
         # Use the appropriate filter based on current view
-        current_filter = self.inbox_project_filter if self.viewing_inbox else self.current_project_filter
+        current_filter = (
+            self.inbox_project_filter
+            if self.viewing_inbox
+            else self.current_project_filter
+        )
         self.push_screen(
             FilterProjectScreen(current_filter, available_projects),
             handle_result,

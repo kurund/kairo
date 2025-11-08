@@ -55,10 +55,14 @@ class AddTaskScreen(ModalScreen[bool]):
     }
     """
 
-    def __init__(self, year: int, week: int):
+    def __init__(
+        self, year: int, week: int, default_tag: str = "", default_project: str = ""
+    ):
         super().__init__()
         self.year = year
         self.week = week
+        self.default_tag = default_tag
+        self.default_project = default_project
 
     def compose(self) -> ComposeResult:
         """Compose the add task dialog."""
@@ -71,9 +75,15 @@ class AddTaskScreen(ModalScreen[bool]):
             yield Label("Description (optional):")
             yield TextArea(id="desc_input")
             yield Label("Tags (comma-separated, e.g., work,urgent):")
-            yield Input(placeholder="work, personal", id="tags_input")
+            yield Input(
+                value=self.default_tag, placeholder="work, personal", id="tags_input"
+            )
             yield Label("Project (optional):")
-            yield Input(placeholder="e.g., Website Redesign", id="project_input")
+            yield Input(
+                value=self.default_project,
+                placeholder="e.g., Website Redesign",
+                id="project_input",
+            )
             yield Label("Estimate (hours, optional):")
             yield Input(placeholder="e.g., 2", id="estimate_input", type="integer")
             yield Checkbox("Schedule for this week", value=True, id="schedule_checkbox")
@@ -97,7 +107,9 @@ class AddTaskScreen(ModalScreen[bool]):
             ]
 
             # Get project value
-            project = project_input.value.strip() if project_input.value.strip() else None
+            project = (
+                project_input.value.strip() if project_input.value.strip() else None
+            )
 
             # Parse estimate (convert to int if provided)
             estimate = None
