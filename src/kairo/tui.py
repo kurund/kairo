@@ -112,6 +112,7 @@ class KairoApp(App):
         Binding("i", "toggle_inbox", "Inbox", key_display="i"),
         Binding("w", "show_weekly_plan", "Plan", key_display="w"),
         Binding("s", "show_weekly_report", "Report", key_display="s"),
+        Binding("g", "goto_current_week", "This Week", key_display="g"),
         Binding("j", "cursor_down", "Down", show=False),
         Binding("k", "cursor_up", "Up", show=False),
         Binding("h", "prev_week", "Prev Week", show=False),
@@ -665,6 +666,14 @@ Total: {stats['total_estimate']}h
         self.current_year, self.current_week = get_next_week(
             self.current_year, self.current_week
         )
+
+    def action_goto_current_week(self) -> None:
+        """Go to current week."""
+        year, week = get_current_week()
+        self.current_year = year
+        self.current_week = week
+        week_str = format_week(year, week)
+        self.notify(f"Viewing current week: {week_str}")
 
     def action_cursor_down(self) -> None:
         """Move cursor down in task table (vim j)."""
