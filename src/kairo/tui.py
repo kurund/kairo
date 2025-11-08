@@ -13,8 +13,7 @@ from .database import Database
 from .models import TaskStatus
 from .utils import get_current_week, format_week, get_next_week
 from .screens import (
-    AddTaskScreen,
-    EditTaskScreen,
+    TaskFormScreen,
     FilterTagScreen,
     FilterProjectScreen,
     ConfirmDeleteScreen,
@@ -445,9 +444,10 @@ Total: {stats['total_estimate']}h
             default_project = self.current_project_filter
 
         self.push_screen(
-            AddTaskScreen(
+            TaskFormScreen(
                 self.current_year,
                 self.current_week,
+                task=None,  # None means add new task
                 default_tag=default_tag,
                 default_project=default_project,
             ),
@@ -470,7 +470,14 @@ Total: {stats['total_estimate']}h
                 self.load_tasks()
                 self.notify(f"Task updated: {task.title}")
 
-        self.push_screen(EditTaskScreen(task), handle_result)
+        self.push_screen(
+            TaskFormScreen(
+                self.current_year,
+                self.current_week,
+                task=task,  # Pass task for editing
+            ),
+            handle_result,
+        )
 
     def action_toggle_complete(self) -> None:
         """Toggle task completion status (complete ↔ reopen)."""

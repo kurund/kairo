@@ -1,7 +1,6 @@
 """TUI screen components for Kairo."""
 
-from .add_task import AddTaskScreen
-from .edit_task import EditTaskScreen
+from .task_form import TaskFormScreen
 from .filter_tag import FilterTagScreen
 from .filter_project import FilterProjectScreen
 from .confirm_delete import ConfirmDeleteScreen
@@ -10,8 +9,7 @@ from .weekly_plan import WeeklyPlanScreen
 from .weekly_report import WeeklyReportScreen
 
 __all__ = [
-    "AddTaskScreen",
-    "EditTaskScreen",
+    "TaskFormScreen",
     "FilterTagScreen",
     "FilterProjectScreen",
     "ConfirmDeleteScreen",
