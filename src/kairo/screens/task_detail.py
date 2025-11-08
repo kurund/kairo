@@ -57,9 +57,12 @@ class TaskDetailScreen(ModalScreen[None]):
             yield Label(
                 f"Status: {'✓ Completed' if self._task_data.status == TaskStatus.COMPLETED else '○ Open'}"
             )
-            yield Label(
-                f"Week: {format_week(self._task_data.year, self._task_data.week)}"
-            )
+            if self._task_data.week is not None and self._task_data.year is not None:
+                yield Label(
+                    f"Week: {format_week(self._task_data.year, self._task_data.week)}"
+                )
+            else:
+                yield Label("Week: [dim]Inbox (unscheduled)[/dim]")
             if self._task_data.project:
                 yield Label(f"Project: [magenta]{self._task_data.project}[/magenta]")
             if self._task_data.estimate:
