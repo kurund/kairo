@@ -19,6 +19,8 @@ from .screens import (
     FilterProjectScreen,
     ConfirmDeleteScreen,
     TaskDetailScreen,
+    WeeklyPlanScreen,
+    WeeklyReportScreen,
 )
 
 
@@ -109,6 +111,8 @@ class KairoApp(App):
         Binding("f", "filter_by_tag", "Filter Tag", key_display="F"),
         Binding("p", "filter_by_project", "Filter Project", key_display="P"),
         Binding("i", "toggle_inbox", "Inbox", key_display="I"),
+        Binding("w", "show_weekly_plan", "Weekly Plan", key_display="W"),
+        Binding("s", "show_weekly_report", "Weekly Report", key_display="S"),
         Binding("r", "refresh", "Refresh", key_display="R"),
         Binding("j", "cursor_down", "Down", show=False),
         Binding("k", "cursor_up", "Up", show=False),
@@ -218,6 +222,19 @@ class KairoApp(App):
                             "Move to Prev Week",
                             id="rollback_btn",
                             variant="default",
+                            classes="action_btn",
+                        )
+                    with Horizontal(classes="action_row"):
+                        yield Button(
+                            "📋 Weekly Plan",
+                            id="weekly_plan_btn",
+                            variant="success",
+                            classes="action_btn",
+                        )
+                        yield Button(
+                            "📊 Weekly Report",
+                            id="weekly_report_btn",
+                            variant="success",
                             classes="action_btn",
                         )
 
@@ -565,6 +582,20 @@ Total: {stats['total_estimate']}h
             week_str = format_week(self.current_year, self.current_week)
             self.notify(f"Viewing {week_str}")
 
+    def action_show_weekly_plan(self) -> None:
+        """Show weekly plan for sharing with team."""
+        # Get all tasks for the current week (unfiltered)
+        tasks = self.db.list_tasks(week=self.current_week, year=self.current_year)
+        self.push_screen(WeeklyPlanScreen(tasks, self.current_year, self.current_week))
+
+    def action_show_weekly_report(self) -> None:
+        """Show comprehensive weekly report."""
+        # Get all tasks for the current week (unfiltered)
+        tasks = self.db.list_tasks(week=self.current_week, year=self.current_year)
+        self.push_screen(
+            WeeklyReportScreen(tasks, self.current_year, self.current_week)
+        )
+
     def action_prev_week(self) -> None:
         """Go to previous week."""
         # Get the start of current week and subtract 7 days
@@ -610,6 +641,10 @@ Total: {stats['total_estimate']}h
             self.rollover_tasks()
         elif event.button.id == "rollback_btn":
             self.rollback_tasks()
+        elif event.button.id == "weekly_plan_btn":
+            self.action_show_weekly_plan()
+        elif event.button.id == "weekly_report_btn":
+            self.action_show_weekly_report()
 
     def rollover_tasks(self) -> None:
         """Rollover incomplete tasks to next week."""
