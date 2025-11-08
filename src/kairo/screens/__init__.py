@@ -3,6 +3,7 @@
 from .task_form import TaskFormScreen
 from .filter_tag import FilterTagScreen
 from .filter_project import FilterProjectScreen
+from .filter_select import FilterSelectScreen
 from .confirm_delete import ConfirmDeleteScreen
 from .task_detail import TaskDetailScreen
 from .weekly_plan import WeeklyPlanScreen
@@ -12,6 +13,7 @@ __all__ = [
     "TaskFormScreen",
     "FilterTagScreen",
     "FilterProjectScreen",
+    "FilterSelectScreen",
     "ConfirmDeleteScreen",
     "TaskDetailScreen",
     "WeeklyPlanScreen",

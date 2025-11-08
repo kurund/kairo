@@ -16,6 +16,7 @@ from .screens import (
     TaskFormScreen,
     FilterTagScreen,
     FilterProjectScreen,
+    FilterSelectScreen,
     ConfirmDeleteScreen,
     TaskDetailScreen,
     WeeklyPlanScreen,
@@ -101,17 +102,16 @@ class KairoApp(App):
     """
 
     BINDINGS = [
-        Binding("a", "add_task", "Add Task", key_display="a"),
+        Binding("a", "add_task", "Add", key_display="a"),
         Binding("e", "edit_task", "Edit", key_display="e"),
-        Binding("c", "toggle_complete", "Toggle Complete", key_display="c"),
-        Binding("t", "toggle_schedule", "Toggle Schedule", key_display="t"),
+        Binding("c", "toggle_complete", "Complete", key_display="c"),
+        Binding("t", "toggle_schedule", "Schedule", key_display="t"),
         Binding("x", "delete_task", "Delete", key_display="x"),
         Binding("d", "show_details", "Details", key_display="d"),
-        Binding("f", "filter_by_tag", "Filter Tag", key_display="f"),
-        Binding("p", "filter_by_project", "Filter Project", key_display="p"),
+        Binding("f", "show_filter", "Filter", key_display="f"),
         Binding("i", "toggle_inbox", "Inbox", key_display="i"),
-        Binding("w", "show_weekly_plan", "Weekly Plan", key_display="w"),
-        Binding("s", "show_weekly_report", "Weekly Report", key_display="s"),
+        Binding("w", "show_weekly_plan", "Plan", key_display="w"),
+        Binding("s", "show_weekly_report", "Report", key_display="s"),
         Binding("j", "cursor_down", "Down", show=False),
         Binding("k", "cursor_up", "Up", show=False),
         Binding("h", "prev_week", "Prev Week", show=False),
@@ -555,7 +555,29 @@ Total: {stats['total_estimate']}h
         if task:
             self.push_screen(TaskDetailScreen(task))
 
-    def action_filter_by_tag(self) -> None:
+    def action_show_filter(self) -> None:
+        """Show filter selection dialog."""
+
+        def handle_filter_selection(filter_type: str | None) -> None:
+            if filter_type is None:
+                return  # User cancelled
+            elif filter_type == "tag":
+                self._filter_by_tag()
+            elif filter_type == "project":
+                self._filter_by_project()
+            elif filter_type == "clear":
+                # Clear all filters
+                if self.viewing_inbox:
+                    self.inbox_tag_filter = ""
+                    self.inbox_project_filter = ""
+                else:
+                    self.current_tag_filter = ""
+                    self.current_project_filter = ""
+                self.notify("All filters cleared")
+
+        self.push_screen(FilterSelectScreen(), handle_filter_selection)
+
+    def _filter_by_tag(self) -> None:
         """Show filter by tag dialog."""
         available_tags = self.db.get_all_tags()
 
@@ -569,7 +591,7 @@ Total: {stats['total_estimate']}h
                 if tag_filter:
                     self.notify(f"Filtered by tag: {tag_filter}")
                 else:
-                    self.notify("Filter cleared - showing all tasks")
+                    self.notify("Tag filter cleared")
 
         # Use the appropriate filter based on current view
         current_filter = (
@@ -577,7 +599,7 @@ Total: {stats['total_estimate']}h
         )
         self.push_screen(FilterTagScreen(current_filter, available_tags), handle_result)
 
-    def action_filter_by_project(self) -> None:
+    def _filter_by_project(self) -> None:
         """Show filter by project dialog."""
         available_projects = self.db.get_all_projects()
 
@@ -591,7 +613,7 @@ Total: {stats['total_estimate']}h
                 if project_filter:
                     self.notify(f"Filtered by project: {project_filter}")
                 else:
-                    self.notify("Filter cleared - showing all tasks")
+                    self.notify("Project filter cleared")
 
         # Use the appropriate filter based on current view
         current_filter = (
