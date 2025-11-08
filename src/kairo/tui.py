@@ -215,6 +215,7 @@ class KairoApp(App):
         table.add_column("ID", width=6)
         table.add_column("Status", width=8)
         table.add_column("Title", width=None)  # Takes remaining space
+        table.add_column("Project", width=20)
         table.add_column("Tags", width=20)
         table.add_column("Est", width=6)  # Estimate in hours
         table.cursor_type = "row"
@@ -309,6 +310,7 @@ Total: {stats['total_estimate']}h
         for task in tasks:
             status_icon = "✓" if task.status == TaskStatus.COMPLETED else "○"
             status_color = "green" if task.status == TaskStatus.COMPLETED else "yellow"
+            project_display = task.project if task.project else "-"
             tags_display = ", ".join(task.tags) if task.tags else "-"
             estimate_display = f"{task.estimate}h" if task.estimate else "-"
 
@@ -316,6 +318,7 @@ Total: {stats['total_estimate']}h
                 str(task.id),
                 f"[{status_color}]{status_icon}[/{status_color}]",
                 task.title,
+                f"[magenta]{project_display}[/magenta]",
                 f"[cyan]{tags_display}[/cyan]",
                 f"[dim]{estimate_display}[/dim]",
                 key=str(task.id),

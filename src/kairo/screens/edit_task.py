@@ -77,6 +77,12 @@ class EditTaskScreen(ModalScreen[bool]):
                 placeholder="work, personal",
                 id="tags_input",
             )
+            yield Label("Project (optional):")
+            yield Input(
+                value=self._task_data.project if self._task_data.project else "",
+                placeholder="e.g., Website Redesign",
+                id="project_input",
+            )
             yield Label("Estimate (hours, optional):")
             yield Input(
                 value=str(self._task_data.estimate) if self._task_data.estimate else "",
@@ -93,6 +99,7 @@ class EditTaskScreen(ModalScreen[bool]):
         title_input = self.query_one("#title_input", Input)
         desc_input = self.query_one("#desc_input", TextArea)
         tags_input = self.query_one("#tags_input", Input)
+        project_input = self.query_one("#project_input", Input)
         estimate_input = self.query_one("#estimate_input", Input)
 
         if title_input.value.strip():
@@ -100,6 +107,9 @@ class EditTaskScreen(ModalScreen[bool]):
             tag_list = [
                 tag.strip() for tag in tags_input.value.split(",") if tag.strip()
             ]
+
+            # Get project value
+            project = project_input.value.strip() if project_input.value.strip() else None
 
             # Parse estimate (convert to int if provided)
             estimate = None
@@ -117,6 +127,7 @@ class EditTaskScreen(ModalScreen[bool]):
                     description=desc_input.text.strip(),
                     tags=tag_list,
                     estimate=estimate,
+                    project=project,
                 )
                 self.dismiss(True)
             finally:

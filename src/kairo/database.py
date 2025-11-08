@@ -3,10 +3,13 @@
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Any
 
 from .models import Task, TaskStatus
 from .utils import get_current_week
+
+# Sentinel value to distinguish between "don't update" and "set to None"
+_UNSET = object()
 
 
 class Database:
@@ -43,7 +46,8 @@ class Database:
                 year INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
                 completed_at TEXT,
-                estimate INTEGER
+                estimate INTEGER,
+                project TEXT
             )
         """
         )
@@ -77,6 +81,12 @@ class Database:
         except sqlite3.OperationalError:
             cursor.execute("ALTER TABLE tasks ADD COLUMN estimate INTEGER")
 
+        # Migration: Add project column if it doesn't exist
+        try:
+            cursor.execute("SELECT project FROM tasks LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE tasks ADD COLUMN project TEXT")
+
         self.conn.commit()
 
     def add_task(
@@ -87,6 +97,7 @@ class Database:
         year: Optional[int] = None,
         tags: list[str] = None,
         estimate: Optional[int] = None,
+        project: Optional[str] = None,
     ) -> Task:
         """Add a new task.
 
@@ -97,6 +108,7 @@ class Database:
             year: Year (defaults to current year)
             tags: List of tag names
             estimate: Estimated time in hours
+            project: Project name
 
         Returns:
             Created task
@@ -112,8 +124,8 @@ class Database:
 
         cursor.execute(
             """
-            INSERT INTO tasks (title, description, status, week, year, created_at, estimate)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO tasks (title, description, status, week, year, created_at, estimate, project)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 title,
@@ -123,6 +135,7 @@ class Database:
                 year,
                 created_at.isoformat(),
                 estimate,
+                project,
             ),
         )
 
@@ -145,6 +158,7 @@ class Database:
             completed_at=None,
             tags=tags,
             estimate=estimate,
+            project=project,
         )
 
     def get_task(self, task_id: int) -> Optional[Task]:
@@ -279,40 +293,46 @@ class Database:
     def update_task(
         self,
         task_id: int,
-        title: Optional[str] = None,
-        description: Optional[str] = None,
-        tags: Optional[list[str]] = None,
-        estimate: Optional[int] = None,
+        title: Any = _UNSET,
+        description: Any = _UNSET,
+        tags: Any = _UNSET,
+        estimate: Any = _UNSET,
+        project: Any = _UNSET,
     ) -> bool:
         """Update task fields.
 
         Args:
             task_id: Task ID
-            title: New title (optional)
-            description: New description (optional)
-            tags: New list of tags (optional, replaces existing tags)
-            estimate: Estimated time in hours (optional)
+            title: New title (pass _UNSET to not update, None to clear, or value to set)
+            description: New description (pass _UNSET to not update, None to clear, or value to set)
+            tags: New list of tags (pass _UNSET to not update, empty list to clear, or value to set)
+            estimate: Estimated time in hours (pass _UNSET to not update, None to clear, or value to set)
+            project: Project name (pass _UNSET to not update, None to clear, or value to set)
 
         Returns:
             True if task was found and updated, False otherwise
         """
         cursor = self.conn.cursor()
 
-        # Update title and/or description and/or estimate
+        # Update title and/or description and/or estimate and/or project
         updates = []
         params = []
 
-        if title is not None:
+        if title is not _UNSET:
             updates.append("title = ?")
             params.append(title)
 
-        if description is not None:
+        if description is not _UNSET:
             updates.append("description = ?")
             params.append(description)
 
-        if estimate is not None:
+        if estimate is not _UNSET:
             updates.append("estimate = ?")
             params.append(estimate)
+
+        if project is not _UNSET:
+            updates.append("project = ?")
+            params.append(project)
 
         if updates:
             params.append(task_id)
@@ -320,7 +340,7 @@ class Database:
             cursor.execute(query, params)
 
         # Update tags if provided
-        if tags is not None:
+        if tags is not _UNSET:
             # Remove existing tags
             cursor.execute("DELETE FROM task_tags WHERE task_id = ?", (task_id,))
 
@@ -329,7 +349,7 @@ class Database:
                 self._add_tag_to_task(task_id, tag_name)
 
         self.conn.commit()
-        return cursor.rowcount > 0 or tags is not None
+        return cursor.rowcount > 0 or tags is not _UNSET
 
     def rollover_tasks(
         self, from_year: int, from_week: int, to_year: int, to_week: int
@@ -451,6 +471,7 @@ class Database:
             ),
             tags=tags,
             estimate=row["estimate"] if row["estimate"] else None,
+            project=row["project"] if row["project"] else None,
         )
 
     def _get_or_create_tag(self, tag_name: str) -> int:
@@ -564,6 +585,47 @@ class Database:
             params.append(status.value)
 
         query += " ORDER BY tasks.created_at DESC"
+
+        cursor = self.conn.cursor()
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+
+        return [self._row_to_task(row) for row in rows]
+
+    def list_tasks_by_project(
+        self,
+        project: str,
+        week: Optional[int] = None,
+        year: Optional[int] = None,
+        status: Optional[TaskStatus] = None,
+        show_all: bool = False,
+    ) -> list[Task]:
+        """List tasks filtered by project.
+
+        Args:
+            project: Project name to filter by
+            week: Filter by week number
+            year: Filter by year
+            status: Filter by status
+            show_all: If True, show all tasks regardless of week
+
+        Returns:
+            List of tasks
+        """
+        query = "SELECT * FROM tasks WHERE project = ?"
+        params = [project]
+
+        if not show_all:
+            if week is None or year is None:
+                year, week = get_current_week()
+            query += " AND week = ? AND year = ?"
+            params.extend([week, year])
+
+        if status is not None:
+            query += " AND status = ?"
+            params.append(status.value)
+
+        query += " ORDER BY created_at DESC"
 
         cursor = self.conn.cursor()
         cursor.execute(query, params)

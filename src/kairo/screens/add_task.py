@@ -72,6 +72,8 @@ class AddTaskScreen(ModalScreen[bool]):
             yield TextArea(id="desc_input")
             yield Label("Tags (comma-separated, e.g., work,urgent):")
             yield Input(placeholder="work, personal", id="tags_input")
+            yield Label("Project (optional):")
+            yield Input(placeholder="e.g., Website Redesign", id="project_input")
             yield Label("Estimate (hours, optional):")
             yield Input(placeholder="e.g., 2", id="estimate_input", type="integer")
             with Horizontal():
@@ -83,6 +85,7 @@ class AddTaskScreen(ModalScreen[bool]):
         title_input = self.query_one("#title_input", Input)
         desc_input = self.query_one("#desc_input", TextArea)
         tags_input = self.query_one("#tags_input", Input)
+        project_input = self.query_one("#project_input", Input)
         estimate_input = self.query_one("#estimate_input", Input)
 
         if title_input.value.strip():
@@ -90,6 +93,9 @@ class AddTaskScreen(ModalScreen[bool]):
             tag_list = [
                 tag.strip() for tag in tags_input.value.split(",") if tag.strip()
             ]
+
+            # Get project value
+            project = project_input.value.strip() if project_input.value.strip() else None
 
             # Parse estimate (convert to int if provided)
             estimate = None
@@ -108,6 +114,7 @@ class AddTaskScreen(ModalScreen[bool]):
                     year=self.year,
                     tags=tag_list,
                     estimate=estimate,
+                    project=project,
                 )
                 self.dismiss(True)
             finally:

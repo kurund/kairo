@@ -27,6 +27,7 @@ class Task:
     completed_at: Optional[datetime] = None
     tags: list[str] = None  # List of tag names
     estimate: Optional[int] = None  # Estimated time in hours
+    project: Optional[str] = None  # Project name
 
     def __post_init__(self):
         """Initialize tags to empty list if None."""
@@ -48,6 +49,7 @@ class Task:
             ),
             "tags": self.tags,
             "estimate": self.estimate,
+            "project": self.project,
         }
 
     @classmethod
@@ -68,4 +70,5 @@ class Task:
             ),
             tags=data.get("tags", []),
             estimate=data.get("estimate"),
+            project=data.get("project"),
         )
