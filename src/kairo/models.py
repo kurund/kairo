@@ -13,29 +13,6 @@ class TaskStatus(Enum):
     COMPLETED = "completed"
 
 
-class TaskPriority(Enum):
-    """Task priority enumeration."""
-
-    NONE = (0, "None", "")
-    LOW = (1, "Low", "🟢")
-    MEDIUM = (2, "Medium", "🟡")
-    HIGH = (3, "High", "🟠")
-    URGENT = (4, "Urgent", "🔴")
-
-    def __init__(self, value: int, label: str, symbol: str):
-        self._value_ = value
-        self.label = label
-        self.symbol = symbol
-
-    @classmethod
-    def from_value(cls, value: int) -> "TaskPriority":
-        """Get priority from integer value."""
-        for priority in cls:
-            if priority.value == value:
-                return priority
-        return cls.NONE
-
-
 @dataclass
 class Task:
     """Task model."""
@@ -51,7 +28,7 @@ class Task:
     tags: list[str] = None  # List of tag names
     estimate: Optional[int] = None  # Estimated time in hours
     project: Optional[str] = None  # Project name
-    priority: int = 0  # Priority: 0=None, 1=Low, 2=Medium, 3=High, 4=Urgent
+    position: int = 0  # Position in the task list for ordering
 
     def __post_init__(self):
         """Initialize tags to empty list if None."""
@@ -74,7 +51,7 @@ class Task:
             "tags": self.tags,
             "estimate": self.estimate,
             "project": self.project,
-            "priority": self.priority,
+            "position": self.position,
         }
 
     @classmethod
@@ -96,5 +73,5 @@ class Task:
             tags=data.get("tags", []),
             estimate=data.get("estimate"),
             project=data.get("project"),
-            priority=data.get("priority", 0),
+            position=data.get("position", 0),
         )

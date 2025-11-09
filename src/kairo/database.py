@@ -87,12 +87,12 @@ class Database:
         except sqlite3.OperationalError:
             cursor.execute("ALTER TABLE tasks ADD COLUMN project TEXT")
 
-        # Migration: Add priority column if it doesn't exist
-        # Priority: 1=Low, 2=Medium, 3=High, 4=Urgent, NULL/0=No priority
+        # Migration: Add position column if it doesn't exist
+        # Position is used for manual task ordering (lower = higher in list)
         try:
-            cursor.execute("SELECT priority FROM tasks LIMIT 1")
+            cursor.execute("SELECT position FROM tasks LIMIT 1")
         except sqlite3.OperationalError:
-            cursor.execute("ALTER TABLE tasks ADD COLUMN priority INTEGER DEFAULT 0")
+            cursor.execute("ALTER TABLE tasks ADD COLUMN position INTEGER DEFAULT 0")
 
         # Migration: Make week and year nullable (for inbox feature)
         # Check if week/year have NOT NULL constraint by trying to insert NULL
@@ -114,13 +114,13 @@ class Database:
                     completed_at TEXT,
                     estimate INTEGER,
                     project TEXT,
-                    priority INTEGER DEFAULT 0
+                    position INTEGER DEFAULT 0
                 )
             """)
 
             # Copy data
             cursor.execute("""
-                INSERT INTO tasks_new (id, title, description, status, week, year, created_at, completed_at, estimate, project, priority)
+                INSERT INTO tasks_new (id, title, description, status, week, year, created_at, completed_at, estimate, project, position)
                 SELECT id, title, description, status, week, year, created_at, completed_at, estimate, project, 0
                 FROM tasks
             """)
@@ -140,7 +140,6 @@ class Database:
         tags: list[str] = None,
         estimate: Optional[int] = None,
         project: Optional[str] = None,
-        priority: int = 0,
         schedule: bool = True,
     ) -> Task:
         """Add a new task.
@@ -153,7 +152,6 @@ class Database:
             tags: List of tag names
             estimate: Estimated time in hours
             project: Project name
-            priority: Priority level (0=None, 1=Low, 2=Medium, 3=High, 4=Urgent)
             schedule: If True, schedule for a week; if False, add to inbox (week/year=NULL)
 
         Returns:
@@ -173,9 +171,24 @@ class Database:
         created_at = datetime.now()
         cursor = self.conn.cursor()
 
+        # Auto-assign position: Find max position for this week/year and add 1
+        # For inbox tasks (week/year = NULL), use separate numbering
+        if week is not None and year is not None:
+            cursor.execute(
+                "SELECT MAX(position) FROM tasks WHERE week = ? AND year = ?",
+                (week, year)
+            )
+        else:
+            cursor.execute(
+                "SELECT MAX(position) FROM tasks WHERE week IS NULL AND year IS NULL"
+            )
+
+        max_position = cursor.fetchone()[0]
+        position = (max_position or 0) + 1
+
         cursor.execute(
             """
-            INSERT INTO tasks (title, description, status, week, year, created_at, estimate, project, priority)
+            INSERT INTO tasks (title, description, status, week, year, created_at, estimate, project, position)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
@@ -187,7 +200,7 @@ class Database:
                 created_at.isoformat(),
                 estimate,
                 project,
-                priority,
+                position,
             ),
         )
 
@@ -211,7 +224,7 @@ class Database:
             tags=tags,
             estimate=estimate,
             project=project,
-            priority=priority,
+            position=position,
         )
 
     def get_task(self, task_id: int) -> Optional[Task]:
@@ -263,7 +276,7 @@ class Database:
             query += " AND status = ?"
             params.append(status.value)
 
-        query += " ORDER BY priority DESC, created_at DESC"
+        query += " ORDER BY position ASC, created_at ASC"
 
         cursor = self.conn.cursor()
         cursor.execute(query, params)
@@ -351,7 +364,7 @@ class Database:
         tags: Any = _UNSET,
         estimate: Any = _UNSET,
         project: Any = _UNSET,
-        priority: Any = _UNSET,
+        position: Any = _UNSET,
         week: Any = _UNSET,
         year: Any = _UNSET,
     ) -> bool:
@@ -364,7 +377,7 @@ class Database:
             tags: New list of tags (pass _UNSET to not update, empty list to clear, or value to set)
             estimate: Estimated time in hours (pass _UNSET to not update, None to clear, or value to set)
             project: Project name (pass _UNSET to not update, None to clear, or value to set)
-            priority: Priority level (pass _UNSET to not update, 0 for none, 1-4 for Low/Medium/High/Urgent)
+            position: Position in task list (pass _UNSET to not update, or value to set)
             week: Week number (pass _UNSET to not update, None for inbox, or value to schedule)
             year: Year (pass _UNSET to not update, None for inbox, or value to schedule)
 
@@ -393,9 +406,9 @@ class Database:
             updates.append("project = ?")
             params.append(project)
 
-        if priority is not _UNSET:
-            updates.append("priority = ?")
-            params.append(priority)
+        if position is not _UNSET:
+            updates.append("position = ?")
+            params.append(position)
 
         if week is not _UNSET:
             updates.append("week = ?")
@@ -543,7 +556,7 @@ class Database:
             tags=tags,
             estimate=row["estimate"] if row["estimate"] else None,
             project=row["project"] if row["project"] else None,
-            priority=row.get("priority", 0) or 0,
+            position=row["position"] if "position" in row.keys() and row["position"] else 0,
         )
 
     def _get_or_create_tag(self, tag_name: str) -> int:
@@ -668,7 +681,7 @@ class Database:
             query += " AND tasks.status = ?"
             params.append(status.value)
 
-        query += " ORDER BY tasks.created_at DESC"
+        query += " ORDER BY tasks.position ASC, tasks.created_at ASC"
 
         cursor = self.conn.cursor()
         cursor.execute(query, params)
@@ -709,7 +722,7 @@ class Database:
             query += " AND status = ?"
             params.append(status.value)
 
-        query += " ORDER BY priority DESC, created_at DESC"
+        query += " ORDER BY position ASC, created_at ASC"
 
         cursor = self.conn.cursor()
         cursor.execute(query, params)
@@ -733,13 +746,45 @@ class Database:
             query += " AND status = ?"
             params.append(status.value)
 
-        query += " ORDER BY priority DESC, created_at DESC"
+        query += " ORDER BY position ASC, created_at ASC"
 
         cursor = self.conn.cursor()
         cursor.execute(query, params)
         rows = cursor.fetchall()
 
         return [self._row_to_task(row) for row in rows]
+
+    def swap_task_positions(self, task_id1: int, task_id2: int) -> bool:
+        """Swap positions of two tasks.
+
+        Args:
+            task_id1: First task ID
+            task_id2: Second task ID
+
+        Returns:
+            True if swap was successful, False otherwise
+        """
+        cursor = self.conn.cursor()
+
+        # Get current positions
+        cursor.execute("SELECT position FROM tasks WHERE id = ?", (task_id1,))
+        row1 = cursor.fetchone()
+        if not row1:
+            return False
+        pos1 = row1[0]
+
+        cursor.execute("SELECT position FROM tasks WHERE id = ?", (task_id2,))
+        row2 = cursor.fetchone()
+        if not row2:
+            return False
+        pos2 = row2[0]
+
+        # Swap positions
+        cursor.execute("UPDATE tasks SET position = ? WHERE id = ?", (pos2, task_id1))
+        cursor.execute("UPDATE tasks SET position = ? WHERE id = ?", (pos1, task_id2))
+
+        self.conn.commit()
+        return True
 
     def close(self):
         """Close database connection."""

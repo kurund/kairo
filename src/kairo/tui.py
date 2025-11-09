@@ -115,6 +115,8 @@ class KairoApp(App):
         Binding("g", "goto_current_week", "This Week", key_display="g"),
         Binding("j", "cursor_down", "Down", show=False),
         Binding("k", "cursor_up", "Up", show=False),
+        Binding("J", "move_task_down", "Move Down", key_display="J"),
+        Binding("K", "move_task_up", "Move Up", key_display="K"),
         Binding("h", "prev_week", "Prev Week", show=False),
         Binding("l", "next_week", "Next Week", show=False),
         Binding("left", "prev_week", "Prev Week", key_display="←"),
@@ -684,6 +686,60 @@ Total: {stats['total_estimate']}h
         """Move cursor up in task table (vim k)."""
         table = self.query_one("#task_table", DataTable)
         table.action_cursor_up()
+
+    def action_move_task_down(self) -> None:
+        """Move selected task down in the list (swap with task below)."""
+        table = self.query_one("#task_table", DataTable)
+        if table.cursor_row is None or table.row_count == 0:
+            return
+
+        # Can't move down if already at bottom
+        if table.cursor_row >= table.row_count - 1:
+            self.notify("Task is already at the bottom")
+            return
+
+        # Get current and next task IDs
+        current_task_id = int(table.get_row_at(table.cursor_row)[0])
+        next_task_id = int(table.get_row_at(table.cursor_row + 1)[0])
+
+        # Swap positions
+        if self.db.swap_task_positions(current_task_id, next_task_id):
+            # Remember cursor position
+            cursor_pos = table.cursor_row
+            # Reload tasks
+            self.load_tasks()
+            # Move cursor down to follow the task
+            if cursor_pos + 1 < table.row_count:
+                table.move_cursor(row=cursor_pos + 1)
+        else:
+            self.notify("Failed to move task")
+
+    def action_move_task_up(self) -> None:
+        """Move selected task up in the list (swap with task above)."""
+        table = self.query_one("#task_table", DataTable)
+        if table.cursor_row is None or table.row_count == 0:
+            return
+
+        # Can't move up if already at top
+        if table.cursor_row <= 0:
+            self.notify("Task is already at the top")
+            return
+
+        # Get current and previous task IDs
+        current_task_id = int(table.get_row_at(table.cursor_row)[0])
+        prev_task_id = int(table.get_row_at(table.cursor_row - 1)[0])
+
+        # Swap positions
+        if self.db.swap_task_positions(current_task_id, prev_task_id):
+            # Remember cursor position
+            cursor_pos = table.cursor_row
+            # Reload tasks
+            self.load_tasks()
+            # Move cursor up to follow the task
+            if cursor_pos - 1 >= 0:
+                table.move_cursor(row=cursor_pos - 1)
+        else:
+            self.notify("Failed to move task")
 
     def on_button_pressed(self, event: Button.Pressed) -> None:
         """Handle button presses."""
