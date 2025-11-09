@@ -107,7 +107,7 @@ class KairoApp(App):
         Binding("c", "toggle_complete", "Complete", key_display="c"),
         Binding("t", "toggle_schedule", "Schedule", key_display="t"),
         Binding("d", "delete_task", "Delete", key_display="d"),
-        Binding("v", "show_details", "Details", key_display="v"),
+        Binding("v", "show_details", "View", key_display="v"),
         Binding("f", "show_filter", "Filter", key_display="f"),
         Binding("i", "toggle_inbox", "Inbox", key_display="i"),
         Binding("w", "show_weekly_plan", "Plan", key_display="w"),
@@ -119,8 +119,8 @@ class KairoApp(App):
         Binding("K", "move_task_up", "Move Up", key_display="K"),
         Binding("h", "prev_week", "Prev Week", show=False),
         Binding("l", "next_week", "Next Week", show=False),
-        Binding("left", "prev_week", "Prev Week", key_display="←"),
-        Binding("right", "next_week", "Next Week", key_display="→"),
+        Binding("left", "prev_week", "Prev Week", show=False),
+        Binding("right", "next_week", "Next Week", show=False),
         Binding("q", "quit", "Quit", key_display="q"),
     ]
 
