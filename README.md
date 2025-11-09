@@ -61,8 +61,12 @@ kairo
 - **e** - Edit selected task
 - **c** - Toggle complete/reopen task
 - **t** - Toggle task between inbox and current week
-- **x** - Delete selected task (with confirmation)
-- **d** - View task details
+- **d** - Delete selected task (with confirmation)
+- **v** - View task details
+
+**Task Ordering:**
+- **J** - Move selected task down in list
+- **K** - Move selected task up in list
 
 **Filtering & Views:**
 - **f** - Show filter menu (filter by tag, project, or clear all filters)
