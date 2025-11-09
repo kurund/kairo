@@ -761,29 +761,46 @@ Total: {stats['total_estimate']}h
             self.action_show_weekly_report()
 
     def rollover_tasks(self) -> None:
-        """Rollover incomplete tasks to next week."""
+        """Move incomplete tasks from viewed week to next week."""
+        # Get next week relative to the viewed week
         next_year, next_week = get_next_week(self.current_year, self.current_week)
+
+        # Move tasks from viewed week to next week
         count = self.db.rollover_tasks(
             self.current_year, self.current_week, next_year, next_week
         )
         self.load_tasks()
+
+        viewed_week_str = format_week(self.current_year, self.current_week)
+        next_week_str = format_week(next_year, next_week)
         self.notify(
-            f"Rolled over {count} task(s) to {format_week(next_year, next_week)}"
+            f"Moved {count} task(s) from {viewed_week_str} to {next_week_str}"
         )
 
     def rollback_tasks(self) -> None:
-        """Rollback incomplete tasks from next week to current week."""
-        next_year, next_week = get_next_week(self.current_year, self.current_week)
+        """Move incomplete tasks from viewed week to previous week."""
+        from .utils import get_week_range
+
+        # Calculate previous week relative to the viewed week
+        week_start, _ = get_week_range(self.current_year, self.current_week)
+        prev_date = week_start - __import__("datetime").timedelta(days=7)
+        iso = prev_date.isocalendar()
+        prev_year, prev_week = iso.year, iso.week
+
+        # Move tasks from viewed week to previous week
         count = self.db.rollback_tasks(
-            next_year, next_week, self.current_year, self.current_week
+            self.current_year, self.current_week, prev_year, prev_week
         )
         self.load_tasks()
+
+        viewed_week_str = format_week(self.current_year, self.current_week)
+        prev_week_str = format_week(prev_year, prev_week)
         if count > 0:
             self.notify(
-                f"Rolled back {count} task(s) from {format_week(next_year, next_week)}"
+                f"Moved {count} task(s) from {viewed_week_str} to {prev_week_str}"
             )
         else:
-            self.notify("No open tasks to rollback from next week")
+            self.notify(f"No open tasks in {viewed_week_str} to move")
 
     def on_shutdown(self) -> None:
         """Clean up when app shuts down."""
