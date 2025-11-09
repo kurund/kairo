@@ -6,10 +6,14 @@
 
 - **Interactive TUI**: Full-featured terminal user interface with keyboard shortcuts
 - **Weekly planning**: Organize tasks by ISO week numbers
-- **Tags system**: Categorize tasks with tags (e.g., work, personal, urgent)
+- **Inbox support**: Collect unscheduled tasks and schedule them when ready
+- **Tags & Projects**: Categorize tasks with tags and organize by projects
+- **Filtering**: Filter tasks by tag or project (filters persist across sessions)
+- **Time estimates**: Track estimated hours for tasks
 - **Auto-rollover**: Incomplete tasks automatically move to next week
 - **Beautiful output**: Rich terminal formatting with tables and colors
-- **Weekly statistics**: Real-time stats and completion tracking
+- **Weekly statistics**: Real-time stats and completion tracking with estimates
+- **Weekly reports**: Generate planning and completion reports
 - **CLI commands**: Alternative command-line interface for scripting
 - **Simple storage**: SQLite database stored in `~/.kairo/tasks.db`
 
@@ -52,17 +56,31 @@ kairo
 
 #### TUI Keyboard Shortcuts
 
-- **A** - Add new task
-- **E** - Edit selected task
-- **C** - Complete selected task
-- **O** - Reopen completed task (mark as open)
-- **X** - Delete selected task (with confirmation)
-- **D** - View task details
-- **F** - Filter tasks by tag (persisted across sessions)
-- **R** - Refresh task list
-- **←/→** or **H/L** - Navigate between weeks (vim style)
-- **↑/↓** or **J/K** - Navigate task list (vim style)
-- **Q** - Quit
+**Task Management:**
+- **a** - Add new task
+- **e** - Edit selected task
+- **c** - Toggle complete/reopen task
+- **t** - Toggle task between inbox and current week
+- **x** - Delete selected task (with confirmation)
+- **d** - View task details
+
+**Filtering & Views:**
+- **f** - Show filter menu (filter by tag, project, or clear all filters)
+- **i** - Toggle between inbox view and weekly view
+
+**Navigation:**
+- **g** - Go to current week
+- **←/→** or **h/l** - Navigate between weeks (vim style)
+- **↑/↓** or **j/k** - Navigate task list (vim style)
+
+**Reports:**
+- **w** - Show weekly plan
+- **s** - Show weekly report
+
+**Other:**
+- **q** - Quit
+
+All filters persist across sessions.
 
 #### TUI Buttons
 
@@ -199,15 +217,20 @@ kairo rollover -f 45 -t 46
 ### Interactive TUI Workflow
 
 1. Launch Kairo: `kairo`
-2. Press **A** to add tasks for the week
-3. Press **F** to filter by tag (e.g., "work", "personal")
-4. Navigate with arrow keys or **J/K** (vim style)
-5. Press **C** to complete tasks as you finish them
-6. Press **E** to edit task details
-7. Check weekly statistics in the left panel
-8. Press **←/→** to move between weeks
-9. Filter persists - reopening Kairo maintains your tag filter
-10. Press **Q** to quit
+2. Press **a** to add tasks for the week
+3. Add tasks with title, description, tags, project, and time estimate
+4. Press **i** to toggle to inbox view for unscheduled tasks
+5. Press **t** to move tasks between inbox and current week
+6. Press **f** to filter by tag or project
+7. Navigate with arrow keys or **j/k** (vim style)
+8. Press **c** to toggle task completion
+9. Press **e** to edit task details
+10. Press **g** to jump to current week
+11. Press **w** or **s** to view weekly plan/report
+12. Check weekly statistics in the left panel
+13. Press **←/→** to move between weeks
+14. All filters persist across sessions
+15. Press **q** to quit
 
 ### CLI Workflow
 
@@ -241,31 +264,30 @@ kairo report
 kairo rollover
 ```
 
-## Tags
+## Tags & Projects
 
-Tags help you organize and filter tasks by context. You can assign multiple tags to any task.
+Tags and projects help you organize and filter tasks.
 
-### Common Tag Examples
+### Tags
 
+Tags help you categorize tasks by context. You can assign multiple tags to any task.
+
+**Common Tag Examples:**
 - **Context**: `work`, `personal`, `home`
 - **Priority**: `urgent`, `important`, `low-priority`
 - **Type**: `meeting`, `coding`, `review`, `planning`
-- **Projects**: `project-alpha`, `maintenance`, `documentation`
 
-### Using Tags in TUI
-
-1. Press **A** to add a new task
+**Using Tags in TUI:**
+1. Press **a** to add a new task
 2. Fill in the title and description
 3. In the "Tags" field, enter comma-separated tags: `work, urgent`
 4. Tags appear in the task table and details view
-5. Press **F** to filter tasks by tag
+5. Press **f** → Select "Filter by Tag"
    - Shows list of all available tags
    - Enter a tag name to filter (e.g., "work")
-   - Press "Clear" to show all tasks
    - Filter persists when you close and reopen Kairo
 
-### Using Tags in CLI
-
+**Using Tags in CLI:**
 ```bash
 # Add task with tags
 kairo add "Sprint planning" -t "work,meeting,planning"
@@ -273,12 +295,39 @@ kairo add "Sprint planning" -t "work,meeting,planning"
 # Filter by tag
 kairo list --tag work
 kairo list --tag urgent --status open
-
-# View all tasks (tags shown in table)
-kairo list --all
 ```
 
-Tags are case-sensitive and stored as lowercase. They're automatically created when first used.
+### Projects
+
+Projects help you group related tasks together. Each task can belong to one project.
+
+**Project Examples:**
+- Website Redesign
+- API Migration
+- Documentation Update
+- Q4 Planning
+
+**Using Projects in TUI:**
+1. Press **a** to add a new task
+2. Enter a project name in the "Project" field
+3. Press **f** → Select "Filter by Project"
+   - Shows list of all available projects
+   - Select a project to filter
+   - Filter persists across sessions
+
+**Using Projects in CLI:**
+Projects are managed through the TUI. Use tags in CLI for similar functionality.
+
+### Inbox
+
+The inbox is for unscheduled tasks that you want to track but haven't assigned to a specific week yet.
+
+**Using Inbox:**
+1. Press **i** to view inbox tasks
+2. Press **a** to add tasks (uncheck "Schedule for this week")
+3. Press **t** on any inbox task to schedule it to the current week
+4. Press **t** on any scheduled task to move it to inbox
+5. Press **f** to filter inbox tasks by tag or project
 
 ## Data Storage
 
