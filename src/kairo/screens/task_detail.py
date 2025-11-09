@@ -3,8 +3,8 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Label
 from textual.screen import ModalScreen
+from textual.widgets import Button, Label
 
 from ..models import Task, TaskStatus
 from ..utils import format_week

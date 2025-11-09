@@ -2,14 +2,13 @@
 
 import click
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
+from rich.table import Table
 from rich.text import Text
 
 from .database import Database
 from .models import TaskStatus
-from .utils import get_current_week, format_week, parse_week, get_next_week
-
+from .utils import format_week, get_current_week, get_next_week, parse_week
 
 console = Console()
 
@@ -35,9 +34,7 @@ def cli(ctx):
 @click.option(
     "-w", "--week", help="Week number or YYYY-Wnn format (defaults to current week)"
 )
-@click.option(
-    "-t", "--tags", help="Comma-separated list of tags (e.g., work,urgent)"
-)
+@click.option("-t", "--tags", help="Comma-separated list of tags (e.g., work,urgent)")
 def add(title: str, description: str, week: str, tags: str):
     """Add a new task."""
     db = Database()
@@ -54,7 +51,11 @@ def add(title: str, description: str, week: str, tags: str):
             tag_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
 
         task = db.add_task(
-            title=title, description=description, week=week_num, year=year, tags=tag_list
+            title=title,
+            description=description,
+            week=week_num,
+            year=year,
+            tags=tag_list,
         )
 
         console.print(f"\n[green]✓[/green] Task created: [bold]{task.title}[/bold]")
@@ -79,9 +80,7 @@ def add(title: str, description: str, week: str, tags: str):
 @click.option(
     "-s", "--status", type=click.Choice(["open", "completed"]), help="Filter by status"
 )
-@click.option(
-    "-t", "--tag", help="Filter by tag"
-)
+@click.option("-t", "--tag", help="Filter by tag")
 def list(week: str, show_all: bool, status: str, tag: str):
     """List tasks."""
     db = Database()
@@ -99,7 +98,11 @@ def list(week: str, show_all: bool, status: str, tag: str):
         # Filter by tag if specified
         if tag:
             tasks = db.list_tasks_by_tag(
-                tag=tag, week=week_num, year=year, status=status_filter, show_all=show_all
+                tag=tag,
+                week=week_num,
+                year=year,
+                status=status_filter,
+                show_all=show_all,
             )
         else:
             tasks = db.list_tasks(
@@ -238,9 +241,7 @@ def delete(task_id: int):
         task_title = task.title
 
         if db.delete_task(task_id):
-            console.print(
-                f"\n[red]✗[/red] Task deleted: [bold]{task_title}[/bold]\n"
-            )
+            console.print(f"\n[red]✗[/red] Task deleted: [bold]{task_title}[/bold]\n")
         else:
             console.print(
                 f"[red]Error:[/red] Failed to delete task {task_id}.", err=True
@@ -278,7 +279,10 @@ def edit(task_id: int, title: str, description: str, tags: str):
             tag_list = [tag.strip() for tag in tags.split(",") if tag.strip()]
 
         if db.update_task(
-            task_id, title=title if title else None, description=description if description else None, tags=tag_list
+            task_id,
+            title=title if title else None,
+            description=description if description else None,
+            tags=tag_list,
         ):
             console.print(f"\n[green]✓[/green] Task updated: [bold]{task.title}[/bold]")
 

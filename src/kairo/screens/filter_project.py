@@ -3,8 +3,8 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Input, Label
 from textual.screen import ModalScreen
+from textual.widgets import Button, Input, Label
 
 
 class FilterProjectScreen(ModalScreen[str]):
@@ -59,7 +59,9 @@ class FilterProjectScreen(ModalScreen[str]):
             yield Label("[bold]Filter Tasks by Project[/bold]")
 
             if self._current_filter:
-                yield Label(f"Current filter: [magenta]{self._current_filter}[/magenta]")
+                yield Label(
+                    f"Current filter: [magenta]{self._current_filter}[/magenta]"
+                )
             else:
                 yield Label("Current filter: [dim]None (showing all)[/dim]")
 

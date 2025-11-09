@@ -3,9 +3,8 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Checkbox, Input, Label, TextArea
 from textual.screen import ModalScreen
-from typing import Optional
+from textual.widgets import Button, Checkbox, Input, Label, TextArea
 
 from ..database import Database
 from ..models import Task
@@ -92,7 +91,7 @@ class TaskFormScreen(ModalScreen[bool]):
         self,
         year: int,
         week: int,
-        task: Optional[Task] = None,
+        task: Task | None = None,
         default_tag: str = "",
         default_project: str = "",
     ):
@@ -122,12 +121,18 @@ class TaskFormScreen(ModalScreen[bool]):
             desc_value = self._task_data.description or ""
             tags_value = ", ".join(self._task_data.tags) if self._task_data.tags else ""
             project_value = self._task_data.project if self._task_data.project else ""
-            estimate_value = str(self._task_data.estimate) if self._task_data.estimate else ""
-            is_scheduled = self._task_data.week is not None and self._task_data.year is not None
+            estimate_value = (
+                str(self._task_data.estimate) if self._task_data.estimate else ""
+            )
+            is_scheduled = (
+                self._task_data.week is not None and self._task_data.year is not None
+            )
             button_text = "Save"
             checkbox_label = "Scheduled (uncheck for Inbox)"
         else:
-            title_text = f"[bold]Add New Task - Week {format_week(self.year, self.week)}[/bold]"
+            title_text = (
+                f"[bold]Add New Task - Week {format_week(self.year, self.week)}[/bold]"
+            )
             title_value = ""
             desc_value = ""
             tags_value = self.default_tag
@@ -182,7 +187,9 @@ class TaskFormScreen(ModalScreen[bool]):
                         type="integer",
                     )
                 with Vertical(classes="two-col"):
-                    yield Checkbox(checkbox_label, value=is_scheduled, id="schedule_checkbox")
+                    yield Checkbox(
+                        checkbox_label, value=is_scheduled, id="schedule_checkbox"
+                    )
 
             # Buttons
             with Horizontal(classes="button-row"):
@@ -203,9 +210,7 @@ class TaskFormScreen(ModalScreen[bool]):
             return
 
         # Parse tags from comma-separated input
-        tag_list = [
-            tag.strip() for tag in tags_input.value.split(",") if tag.strip()
-        ]
+        tag_list = [tag.strip() for tag in tags_input.value.split(",") if tag.strip()]
 
         # Get project value
         project = project_input.value.strip() if project_input.value.strip() else None

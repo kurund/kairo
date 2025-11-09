@@ -3,8 +3,8 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Static
 from textual.screen import ModalScreen
+from textual.widgets import Button, Static
 
 from ..models import Task, TaskStatus
 from ..utils import format_week
@@ -73,9 +73,7 @@ class WeeklyReportScreen(ModalScreen[None]):
 
         # Calculate estimates
         total_estimate = sum(t.estimate for t in self._tasks if t.estimate)
-        completed_estimate = sum(
-            t.estimate for t in completed_tasks if t.estimate
-        )
+        completed_estimate = sum(t.estimate for t in completed_tasks if t.estimate)
         open_estimate = sum(t.estimate for t in open_tasks if t.estimate)
 
         # SUMMARY SECTION
@@ -222,6 +220,7 @@ class WeeklyReportScreen(ModalScreen[None]):
         """Copy report to clipboard."""
         try:
             import pyperclip
+
             pyperclip.copy(self._report_text)
             self.notify("Weekly report copied to clipboard!")
         except ImportError:
@@ -230,9 +229,7 @@ class WeeklyReportScreen(ModalScreen[None]):
                 severity="warning",
             )
         except Exception as e:
-            self.notify(
-                f"Error copying to clipboard: {str(e)}", severity="error"
-            )
+            self.notify(f"Error copying to clipboard: {str(e)}", severity="error")
 
     def action_close(self) -> None:
         """Close the dialog."""

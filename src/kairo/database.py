@@ -3,7 +3,7 @@
 import sqlite3
 from datetime import datetime
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 
 from .models import Task, TaskStatus
 from .utils import get_current_week
@@ -15,7 +15,7 @@ _UNSET = object()
 class Database:
     """SQLite database for task management."""
 
-    def __init__(self, db_path: Optional[Path] = None):
+    def __init__(self, db_path: Path | None = None):
         """Initialize database connection.
 
         Args:
@@ -100,9 +100,12 @@ class Database:
         columns = {row[1]: row for row in cursor.fetchall()}
 
         # If week column has notnull=1, we need to recreate the table
-        if columns.get("week") and columns["week"][3] == 1:  # notnull column is at index 3
+        if (
+            columns.get("week") and columns["week"][3] == 1
+        ):  # notnull column is at index 3
             # Recreate table without NOT NULL constraints on week/year
-            cursor.execute("""
+            cursor.execute(
+                """
                 CREATE TABLE tasks_new (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     title TEXT NOT NULL,
@@ -116,14 +119,17 @@ class Database:
                     project TEXT,
                     position INTEGER DEFAULT 0
                 )
-            """)
+            """
+            )
 
             # Copy data
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO tasks_new (id, title, description, status, week, year, created_at, completed_at, estimate, project, position)
                 SELECT id, title, description, status, week, year, created_at, completed_at, estimate, project, 0
                 FROM tasks
-            """)
+            """
+            )
 
             # Drop old table and rename new one
             cursor.execute("DROP TABLE tasks")
@@ -131,23 +137,27 @@ class Database:
 
         # One-time migration: Assign positions to existing tasks based on created_at
         # Use a marker table to track if this migration has run
-        cursor.execute("""
+        cursor.execute(
+            """
             CREATE TABLE IF NOT EXISTS migrations (
                 name TEXT PRIMARY KEY,
                 applied_at TEXT NOT NULL
             )
-        """)
+        """
+        )
 
         cursor.execute("SELECT name FROM migrations WHERE name = 'assign_positions'")
         migration_done = cursor.fetchone()
 
         if not migration_done:
             # Get all unique week/year combinations (including NULL for inbox)
-            cursor.execute("""
+            cursor.execute(
+                """
                 SELECT DISTINCT week, year
                 FROM tasks
                 ORDER BY year, week
-            """)
+            """
+            )
             week_year_groups = cursor.fetchall()
 
             for group in week_year_groups:
@@ -156,32 +166,36 @@ class Database:
 
                 # Get ALL tasks for this week/year ordered by created_at
                 if week is not None and year is not None:
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT id FROM tasks
                         WHERE week = ? AND year = ?
                         ORDER BY created_at ASC
-                    """, (week, year))
+                    """,
+                        (week, year),
+                    )
                 else:
                     # Handle inbox tasks (NULL week/year)
-                    cursor.execute("""
+                    cursor.execute(
+                        """
                         SELECT id FROM tasks
                         WHERE week IS NULL AND year IS NULL
                         ORDER BY created_at ASC
-                    """)
+                    """
+                    )
 
                 task_ids = [row[0] for row in cursor.fetchall()]
 
                 # Reassign sequential positions starting from 1 (overwrites existing positions)
                 for idx, task_id in enumerate(task_ids, start=1):
                     cursor.execute(
-                        "UPDATE tasks SET position = ? WHERE id = ?",
-                        (idx, task_id)
+                        "UPDATE tasks SET position = ? WHERE id = ?", (idx, task_id)
                     )
 
             # Mark migration as done
             cursor.execute(
                 "INSERT INTO migrations (name, applied_at) VALUES ('assign_positions', ?)",
-                (datetime.now().isoformat(),)
+                (datetime.now().isoformat(),),
             )
 
         self.conn.commit()
@@ -190,11 +204,11 @@ class Database:
         self,
         title: str,
         description: str = "",
-        week: Optional[int] = None,
-        year: Optional[int] = None,
+        week: int | None = None,
+        year: int | None = None,
         tags: list[str] = None,
-        estimate: Optional[int] = None,
-        project: Optional[str] = None,
+        estimate: int | None = None,
+        project: str | None = None,
         schedule: bool = True,
     ) -> Task:
         """Add a new task.
@@ -231,7 +245,7 @@ class Database:
         if week is not None and year is not None:
             cursor.execute(
                 "SELECT MAX(position) FROM tasks WHERE week = ? AND year = ?",
-                (week, year)
+                (week, year),
             )
         else:
             cursor.execute(
@@ -282,7 +296,7 @@ class Database:
             position=position,
         )
 
-    def get_task(self, task_id: int) -> Optional[Task]:
+    def get_task(self, task_id: int) -> Task | None:
         """Get a task by ID.
 
         Args:
@@ -302,9 +316,9 @@ class Database:
 
     def list_tasks(
         self,
-        week: Optional[int] = None,
-        year: Optional[int] = None,
-        status: Optional[TaskStatus] = None,
+        week: int | None = None,
+        year: int | None = None,
+        status: TaskStatus | None = None,
         show_all: bool = False,
     ) -> list[Task]:
         """List tasks with optional filters.
@@ -570,7 +584,14 @@ class Database:
             FROM tasks
             WHERE year = ? AND week = ?
         """,
-            (TaskStatus.COMPLETED.value, TaskStatus.OPEN.value, TaskStatus.COMPLETED.value, TaskStatus.OPEN.value, year, week),
+            (
+                TaskStatus.COMPLETED.value,
+                TaskStatus.OPEN.value,
+                TaskStatus.COMPLETED.value,
+                TaskStatus.OPEN.value,
+                year,
+                week,
+            ),
         )
 
         row = cursor.fetchone()
@@ -611,7 +632,9 @@ class Database:
             tags=tags,
             estimate=row["estimate"] if row["estimate"] else None,
             project=row["project"] if row["project"] else None,
-            position=row["position"] if "position" in row.keys() and row["position"] else 0,
+            position=(
+                row["position"] if "position" in row.keys() and row["position"] else 0
+            ),
         )
 
     def _get_or_create_tag(self, tag_name: str) -> int:
@@ -700,9 +723,9 @@ class Database:
     def list_tasks_by_tag(
         self,
         tag: str,
-        week: Optional[int] = None,
-        year: Optional[int] = None,
-        status: Optional[TaskStatus] = None,
+        week: int | None = None,
+        year: int | None = None,
+        status: TaskStatus | None = None,
         show_all: bool = False,
     ) -> list[Task]:
         """List tasks filtered by tag.
@@ -747,9 +770,9 @@ class Database:
     def list_tasks_by_project(
         self,
         project: str,
-        week: Optional[int] = None,
-        year: Optional[int] = None,
-        status: Optional[TaskStatus] = None,
+        week: int | None = None,
+        year: int | None = None,
+        status: TaskStatus | None = None,
         show_all: bool = False,
     ) -> list[Task]:
         """List tasks filtered by project.
@@ -785,7 +808,7 @@ class Database:
 
         return [self._row_to_task(row) for row in rows]
 
-    def list_inbox_tasks(self, status: Optional[TaskStatus] = None) -> list[Task]:
+    def list_inbox_tasks(self, status: TaskStatus | None = None) -> list[Task]:
         """List inbox tasks (unscheduled tasks with week/year = NULL).
 
         Args:

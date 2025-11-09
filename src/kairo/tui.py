@@ -4,24 +4,24 @@ import json
 from pathlib import Path
 
 from textual.app import App, ComposeResult
-from textual.containers import Container, Horizontal, Vertical
-from textual.widgets import Header, Footer, DataTable, Static, Button
 from textual.binding import Binding
+from textual.containers import Container, Horizontal, Vertical
 from textual.reactive import reactive
+from textual.widgets import Button, DataTable, Footer, Header, Static
 
 from .database import Database
 from .models import TaskStatus
-from .utils import get_current_week, format_week, get_next_week
 from .screens import (
-    TaskFormScreen,
-    FilterTagScreen,
+    ConfirmDeleteScreen,
     FilterProjectScreen,
     FilterSelectScreen,
-    ConfirmDeleteScreen,
+    FilterTagScreen,
     TaskDetailScreen,
+    TaskFormScreen,
     WeeklyPlanScreen,
     WeeklyReportScreen,
 )
+from .utils import format_week, get_current_week, get_next_week
 
 
 class KairoApp(App):
@@ -516,9 +516,7 @@ Total: {stats['total_estimate']}h
         # Toggle based on current schedule status
         if task.week is None or task.year is None:
             # Task is in inbox - schedule it to current week
-            self.db.update_task(
-                task_id, week=self.current_week, year=self.current_year
-            )
+            self.db.update_task(task_id, week=self.current_week, year=self.current_year)
             week_str = format_week(self.current_year, self.current_week)
             self.notify(f"Task scheduled to {week_str}: {task.title}")
         else:
@@ -773,9 +771,7 @@ Total: {stats['total_estimate']}h
 
         viewed_week_str = format_week(self.current_year, self.current_week)
         next_week_str = format_week(next_year, next_week)
-        self.notify(
-            f"Moved {count} task(s) from {viewed_week_str} to {next_week_str}"
-        )
+        self.notify(f"Moved {count} task(s) from {viewed_week_str} to {next_week_str}")
 
     def rollback_tasks(self) -> None:
         """Move incomplete tasks from viewed week to previous week."""

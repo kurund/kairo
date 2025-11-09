@@ -3,8 +3,8 @@
 from textual.app import ComposeResult
 from textual.binding import Binding
 from textual.containers import Horizontal, Vertical
-from textual.widgets import Button, Input, Label
 from textual.screen import ModalScreen
+from textual.widgets import Button, Input, Label
 
 
 class FilterTagScreen(ModalScreen[str]):

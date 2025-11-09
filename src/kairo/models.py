@@ -3,7 +3,6 @@
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
-from typing import Optional
 
 
 class TaskStatus(Enum):
@@ -21,13 +20,13 @@ class Task:
     title: str
     description: str
     status: TaskStatus
-    week: Optional[int]  # ISO week number (None = inbox/unscheduled)
-    year: Optional[int]  # Year for the week (None = inbox/unscheduled)
+    week: int | None  # ISO week number (None = inbox/unscheduled)
+    year: int | None  # Year for the week (None = inbox/unscheduled)
     created_at: datetime
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
     tags: list[str] = None  # List of tag names
-    estimate: Optional[int] = None  # Estimated time in hours
-    project: Optional[str] = None  # Project name
+    estimate: int | None = None  # Estimated time in hours
+    project: str | None = None  # Project name
     position: int = 0  # Position in the task list for ordering
 
     def __post_init__(self):
