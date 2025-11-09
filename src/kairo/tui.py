@@ -214,14 +214,14 @@ class KairoApp(App):
                     yield Static("[bold]⚡ Actions[/bold]")
                     with Horizontal(classes="action_row"):
                         yield Button(
-                            "Move to Next Week",
-                            id="rollover_btn",
+                            "Move to Prev Week",
+                            id="rollback_btn",
                             variant="default",
                             classes="action_btn",
                         )
                         yield Button(
-                            "Move to Prev Week",
-                            id="rollback_btn",
+                            "Move to Next Week",
+                            id="rollover_btn",
                             variant="default",
                             classes="action_btn",
                         )
