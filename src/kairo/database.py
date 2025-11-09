@@ -87,6 +87,13 @@ class Database:
         except sqlite3.OperationalError:
             cursor.execute("ALTER TABLE tasks ADD COLUMN project TEXT")
 
+        # Migration: Add priority column if it doesn't exist
+        # Priority: 1=Low, 2=Medium, 3=High, 4=Urgent, NULL/0=No priority
+        try:
+            cursor.execute("SELECT priority FROM tasks LIMIT 1")
+        except sqlite3.OperationalError:
+            cursor.execute("ALTER TABLE tasks ADD COLUMN priority INTEGER DEFAULT 0")
+
         # Migration: Make week and year nullable (for inbox feature)
         # Check if week/year have NOT NULL constraint by trying to insert NULL
         cursor.execute("PRAGMA table_info(tasks)")
@@ -106,14 +113,15 @@ class Database:
                     created_at TEXT NOT NULL,
                     completed_at TEXT,
                     estimate INTEGER,
-                    project TEXT
+                    project TEXT,
+                    priority INTEGER DEFAULT 0
                 )
             """)
 
             # Copy data
             cursor.execute("""
-                INSERT INTO tasks_new (id, title, description, status, week, year, created_at, completed_at, estimate, project)
-                SELECT id, title, description, status, week, year, created_at, completed_at, estimate, project
+                INSERT INTO tasks_new (id, title, description, status, week, year, created_at, completed_at, estimate, project, priority)
+                SELECT id, title, description, status, week, year, created_at, completed_at, estimate, project, 0
                 FROM tasks
             """)
 
@@ -132,6 +140,7 @@ class Database:
         tags: list[str] = None,
         estimate: Optional[int] = None,
         project: Optional[str] = None,
+        priority: int = 0,
         schedule: bool = True,
     ) -> Task:
         """Add a new task.
@@ -144,6 +153,7 @@ class Database:
             tags: List of tag names
             estimate: Estimated time in hours
             project: Project name
+            priority: Priority level (0=None, 1=Low, 2=Medium, 3=High, 4=Urgent)
             schedule: If True, schedule for a week; if False, add to inbox (week/year=NULL)
 
         Returns:
@@ -165,8 +175,8 @@ class Database:
 
         cursor.execute(
             """
-            INSERT INTO tasks (title, description, status, week, year, created_at, estimate, project)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO tasks (title, description, status, week, year, created_at, estimate, project, priority)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
             (
                 title,
@@ -177,6 +187,7 @@ class Database:
                 created_at.isoformat(),
                 estimate,
                 project,
+                priority,
             ),
         )
 
@@ -200,6 +211,7 @@ class Database:
             tags=tags,
             estimate=estimate,
             project=project,
+            priority=priority,
         )
 
     def get_task(self, task_id: int) -> Optional[Task]:
@@ -251,7 +263,7 @@ class Database:
             query += " AND status = ?"
             params.append(status.value)
 
-        query += " ORDER BY created_at DESC"
+        query += " ORDER BY priority DESC, created_at DESC"
 
         cursor = self.conn.cursor()
         cursor.execute(query, params)
@@ -339,6 +351,7 @@ class Database:
         tags: Any = _UNSET,
         estimate: Any = _UNSET,
         project: Any = _UNSET,
+        priority: Any = _UNSET,
         week: Any = _UNSET,
         year: Any = _UNSET,
     ) -> bool:
@@ -351,6 +364,7 @@ class Database:
             tags: New list of tags (pass _UNSET to not update, empty list to clear, or value to set)
             estimate: Estimated time in hours (pass _UNSET to not update, None to clear, or value to set)
             project: Project name (pass _UNSET to not update, None to clear, or value to set)
+            priority: Priority level (pass _UNSET to not update, 0 for none, 1-4 for Low/Medium/High/Urgent)
             week: Week number (pass _UNSET to not update, None for inbox, or value to schedule)
             year: Year (pass _UNSET to not update, None for inbox, or value to schedule)
 
@@ -378,6 +392,10 @@ class Database:
         if project is not _UNSET:
             updates.append("project = ?")
             params.append(project)
+
+        if priority is not _UNSET:
+            updates.append("priority = ?")
+            params.append(priority)
 
         if week is not _UNSET:
             updates.append("week = ?")
@@ -525,6 +543,7 @@ class Database:
             tags=tags,
             estimate=row["estimate"] if row["estimate"] else None,
             project=row["project"] if row["project"] else None,
+            priority=row.get("priority", 0) or 0,
         )
 
     def _get_or_create_tag(self, tag_name: str) -> int:
@@ -690,7 +709,7 @@ class Database:
             query += " AND status = ?"
             params.append(status.value)
 
-        query += " ORDER BY created_at DESC"
+        query += " ORDER BY priority DESC, created_at DESC"
 
         cursor = self.conn.cursor()
         cursor.execute(query, params)
@@ -714,7 +733,7 @@ class Database:
             query += " AND status = ?"
             params.append(status.value)
 
-        query += " ORDER BY created_at DESC"
+        query += " ORDER BY priority DESC, created_at DESC"
 
         cursor = self.conn.cursor()
         cursor.execute(query, params)
