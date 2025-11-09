@@ -111,7 +111,7 @@ class KairoApp(App):
         Binding("f", "show_filter", "Filter", key_display="f"),
         Binding("i", "toggle_inbox", "Inbox", key_display="i"),
         Binding("w", "show_weekly_plan", "Plan", key_display="w"),
-        Binding("s", "show_weekly_report", "Report", key_display="s"),
+        Binding("r", "show_weekly_report", "Report", key_display="r"),
         Binding("g", "goto_current_week", "This Week", key_display="g"),
         Binding("j", "cursor_down", "Down", show=False),
         Binding("k", "cursor_up", "Up", show=False),

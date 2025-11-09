@@ -79,7 +79,7 @@ kairo
 
 **Reports:**
 - **w** - Show weekly plan
-- **s** - Show weekly report
+- **r** - Show weekly report
 
 **Other:**
 - **q** - Quit
