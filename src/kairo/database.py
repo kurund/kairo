@@ -129,6 +129,61 @@ class Database:
             cursor.execute("DROP TABLE tasks")
             cursor.execute("ALTER TABLE tasks_new RENAME TO tasks")
 
+        # One-time migration: Assign positions to existing tasks based on created_at
+        # Use a marker table to track if this migration has run
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS migrations (
+                name TEXT PRIMARY KEY,
+                applied_at TEXT NOT NULL
+            )
+        """)
+
+        cursor.execute("SELECT name FROM migrations WHERE name = 'assign_positions'")
+        migration_done = cursor.fetchone()
+
+        if not migration_done:
+            # Get all unique week/year combinations (including NULL for inbox)
+            cursor.execute("""
+                SELECT DISTINCT week, year
+                FROM tasks
+                ORDER BY year, week
+            """)
+            week_year_groups = cursor.fetchall()
+
+            for group in week_year_groups:
+                week = group[0]
+                year = group[1]
+
+                # Get ALL tasks for this week/year ordered by created_at
+                if week is not None and year is not None:
+                    cursor.execute("""
+                        SELECT id FROM tasks
+                        WHERE week = ? AND year = ?
+                        ORDER BY created_at ASC
+                    """, (week, year))
+                else:
+                    # Handle inbox tasks (NULL week/year)
+                    cursor.execute("""
+                        SELECT id FROM tasks
+                        WHERE week IS NULL AND year IS NULL
+                        ORDER BY created_at ASC
+                    """)
+
+                task_ids = [row[0] for row in cursor.fetchall()]
+
+                # Reassign sequential positions starting from 1 (overwrites existing positions)
+                for idx, task_id in enumerate(task_ids, start=1):
+                    cursor.execute(
+                        "UPDATE tasks SET position = ? WHERE id = ?",
+                        (idx, task_id)
+                    )
+
+            # Mark migration as done
+            cursor.execute(
+                "INSERT INTO migrations (name, applied_at) VALUES ('assign_positions', ?)",
+                (datetime.now().isoformat(),)
+            )
+
         self.conn.commit()
 
     def add_task(
