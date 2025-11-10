@@ -47,7 +47,7 @@ class TaskFormScreen(ModalScreen[bool]):
     }
 
     #task_dialog TextArea {
-        height: 2;
+        height: 5;
         margin: 0;
     }
 
