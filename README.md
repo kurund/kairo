@@ -60,7 +60,7 @@ kairo
 - **a** - Add new task
 - **e** - Edit selected task
 - **c** - Toggle complete/reopen task
-- **t** - Toggle task between inbox and current week
+- **s** - Toggle task between inbox and current week
 - **d** - Delete selected task (with confirmation)
 - **v** - View task details
 

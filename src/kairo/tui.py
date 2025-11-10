@@ -105,7 +105,7 @@ class KairoApp(App):
         Binding("a", "add_task", "Add", key_display="a"),
         Binding("e", "edit_task", "Edit", key_display="e"),
         Binding("c", "toggle_complete", "Complete", key_display="c"),
-        Binding("t", "toggle_schedule", "Schedule", key_display="t"),
+        Binding("s", "toggle_schedule", "Schedule", key_display="s"),
         Binding("d", "delete_task", "Delete", key_display="d"),
         Binding("v", "show_details", "View", key_display="v"),
         Binding("f", "show_filter", "Filter", key_display="f"),
